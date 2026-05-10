@@ -6,7 +6,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (email: string, username: string, password: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => void;
   updateProfile: (firstName: string, lastName: string, bio?: string, avatarUrl?: string) => Promise<void>;
@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     try {
       setError(null);
       const response = await authAPI.login(email, password);
@@ -51,6 +51,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Save to localStorage
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('user', JSON.stringify(userData));
+        return userData;
       } else {
         throw new Error('Login failed');
       }
