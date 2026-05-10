@@ -5,7 +5,12 @@ import {
   likeCommunityPostController,
 } from '../controllers/community.js';
 
+import { authMiddleware } from '../middleware/auth.js';
+
 const router = Router();
+
+// Auth required for community interactions
+router.use(authMiddleware);
 
 router.get('/', getCommunityPostsController);
 router.post('/', createCommunityPostController);

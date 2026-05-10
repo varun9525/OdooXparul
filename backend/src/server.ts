@@ -1,7 +1,6 @@
-import express, { Express, Response } from 'express';
+import express, { Express } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { authMiddleware } from './middleware/auth.js';
 import { initializeDatabase } from './config/initDb.js';
 import db from './config/database.js';
 import authRoutes from './routes/auth.js';
@@ -20,6 +19,12 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/trips', tripRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/public', publicRoutes);
 
 
 // Initialize database and start server

@@ -23,7 +23,12 @@ import {
   updateNoteController,
 } from '../controllers/tripDetails.js';
 
+import { authMiddleware } from '../middleware/auth.js';
+
 const router = Router();
+
+// Apply auth middleware to all trip routes
+router.use(authMiddleware);
 
 // Trip routes
 router.post('/', validateCreateTrip, createTripController);
