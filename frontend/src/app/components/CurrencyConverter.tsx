@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, DollarSign } from 'lucide-react';
+import { RefreshCw, DollarSign, ArrowRightLeft } from 'lucide-react';
+
+const COMMON_CURRENCIES = ["USD", "EUR", "GBP", "INR", "JPY", "CAD", "AUD", "CHF", "CNY", "BRL"];
 
 export const CurrencyConverter = ({ baseCurrency }: { baseCurrency: string }) => {
   const [rates, setRates] = useState<Record<string, number>>({});
   const [amount, setAmount] = useState('100');
+  const [fromCurrency, setFromCurrency] = useState(baseCurrency || 'USD');
   const [toCurrency, setToCurrency] = useState(baseCurrency === 'USD' ? 'EUR' : 'USD');
   const [loading, setLoading] = useState(false);
 
@@ -11,7 +14,7 @@ export const CurrencyConverter = ({ baseCurrency }: { baseCurrency: string }) =>
     const fetchRates = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`https://open.er-api.com/v6/latest/${baseCurrency}`);
+        const res = await fetch(`https://open.er-api.com/v6/latest/${fromCurrency}`);
         const data = await res.json();
         setRates(data.rates || {});
       } catch (err) {
@@ -21,7 +24,7 @@ export const CurrencyConverter = ({ baseCurrency }: { baseCurrency: string }) =>
       }
     };
     fetchRates();
-  }, [baseCurrency]);
+  }, [fromCurrency]);
 
   const converted = amount && rates[toCurrency] ? (Number(amount) * rates[toCurrency]).toFixed(2) : '0.00';
 
@@ -34,35 +37,45 @@ export const CurrencyConverter = ({ baseCurrency }: { baseCurrency: string }) =>
         {loading && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
       </div>
       
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="flex-1">
-          <label className="text-xs font-semibold text-slate-500 dark:text-white/50">{baseCurrency}</label>
+          <label className="mb-1 flex justify-between text-xs font-bold text-slate-500 dark:text-slate-300">
+            From
+            <select 
+              value={fromCurrency} 
+              onChange={(e) => setFromCurrency(e.target.value)}
+              className="bg-transparent font-black text-indigo-600 outline-none dark:text-indigo-300 [&>option]:bg-white dark:[&>option]:bg-slate-900"
+            >
+              {COMMON_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
           <input 
             type="number" 
             value={amount} 
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-bold dark:border-white/10 dark:bg-slate-900 dark:text-white outline-none"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-900 outline-none dark:border-white/20 dark:bg-slate-900/80 dark:text-white"
           />
         </div>
-        <div className="flex items-end pb-2 text-slate-400">=</div>
+        
+        <div className="hidden pb-3 text-slate-400 sm:block">
+          <ArrowRightLeft className="h-5 w-5" />
+        </div>
+        <div className="flex justify-center pb-0 text-slate-400 sm:hidden">
+          <ArrowRightLeft className="h-5 w-5 rotate-90" />
+        </div>
+        
         <div className="flex-1">
-          <label className="text-xs font-semibold text-slate-500 dark:text-white/50 flex justify-between">
+          <label className="mb-1 flex justify-between text-xs font-bold text-slate-500 dark:text-slate-300">
             To
             <select 
               value={toCurrency} 
               onChange={(e) => setToCurrency(e.target.value)}
-              className="bg-transparent font-bold text-indigo-600 outline-none"
+              className="bg-transparent font-black text-indigo-600 outline-none dark:text-indigo-300 [&>option]:bg-white dark:[&>option]:bg-slate-900"
             >
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="GBP">GBP</option>
-              <option value="INR">INR</option>
-              <option value="JPY">JPY</option>
-              <option value="CAD">CAD</option>
-              <option value="AUD">AUD</option>
+              {COMMON_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </label>
-          <div className="w-full rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 font-black text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
+          <div className="flex w-full items-center rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 font-black text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
             {converted}
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Edit3, Loader2, Save, X, Award, Map, Star, Plane, Briefcase } from "lucide-react";
+import { Edit3, Loader2, Save, X, Award, Map, Star, Plane, Briefcase, Info } from "lucide-react";
 import { useNavigate } from "react-router";
 import { tripAPI, Trip } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -18,6 +18,7 @@ const Profile = () => {
     bio: user?.bio || "",
     avatarUrl: user?.avatarUrl || "",
   });
+  const [showBadgeInfo, setShowBadgeInfo] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -137,10 +138,35 @@ const Profile = () => {
           ))}
         </div>
         
-        <div className="mt-8 pt-8 border-t border-slate-200 dark:border-white/10">
-          <h3 className="mb-4 flex items-center gap-2 text-xl font-black text-slate-800 dark:text-white">
-            <Award className="h-6 w-6 text-yellow-500" /> Traveler Badges
-          </h3>
+        <div className="mt-8 pt-8 border-t border-slate-200 dark:border-white/10 relative">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-xl font-black text-slate-800 dark:text-white">
+              <Award className="h-6 w-6 text-yellow-500" /> Traveler Badges
+            </h3>
+            <button 
+              onClick={() => setShowBadgeInfo(!showBadgeInfo)}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 dark:bg-white/10 dark:text-white/60 dark:hover:bg-white/20 dark:hover:text-white"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+          </div>
+
+          {showBadgeInfo && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5 dark:border-indigo-500/30 dark:bg-indigo-500/10"
+            >
+              <h4 className="mb-3 font-black text-indigo-900 dark:text-indigo-200">How to earn badges:</h4>
+              <ul className="space-y-2 text-sm font-semibold text-slate-700 dark:text-white/70">
+                <li className="flex items-center gap-2"><Star className="h-4 w-4 text-yellow-500" /> <strong className="text-slate-900 dark:text-white">First Journey:</strong> Create your first trip.</li>
+                <li className="flex items-center gap-2"><Plane className="h-4 w-4 text-indigo-500" /> <strong className="text-slate-900 dark:text-white">Globetrotter:</strong> Plan at least 3 total trips.</li>
+                <li className="flex items-center gap-2"><Map className="h-4 w-4 text-rose-500" /> <strong className="text-slate-900 dark:text-white">Explorer:</strong> Visit 3 or more unique destinations.</li>
+                <li className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-emerald-500" /> <strong className="text-slate-900 dark:text-white">High Roller:</strong> Plan trips with a combined total budget over $5,000.</li>
+              </ul>
+            </motion.div>
+          )}
+
           <div className="flex flex-wrap gap-4">
             {stats.trips >= 1 ? (
               <div className="flex items-center gap-3 rounded-full border border-yellow-200 bg-yellow-50 px-4 py-2 dark:border-yellow-500/30 dark:bg-yellow-500/10">
