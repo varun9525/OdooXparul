@@ -13,9 +13,28 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 5000;
 
+const getAllowedOrigins = () => {
+  const defaultOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+  const singleOrigin = process.env.FRONTEND_URL?.trim();
+  const extraOrigins = process.env.FRONTEND_URLS
+    ? process.env.FRONTEND_URLS.split(',').map((origin) => origin.trim()).filter(Boolean)
+    : [];
+
+  return [...new Set([...defaultOrigins, ...(singleOrigin ? [singleOrigin] : []), ...extraOrigins])];
+};
+
+const allowedOrigins = getAllowedOrigins();
+
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -35,7 +54,7 @@ const startServer = async () => {
     await initializeDatabase();
     app.listen(port, () => {
       console.log(`✓ Server is running on http://localhost:${port}`);
-      console.log(`✓ Frontend URL configured: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+      console.log(`✓ Allowed frontend origins: ${allowedOrigins.join(', ')}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
