@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Edit3, Loader2, Save, X } from "lucide-react";
+import { Edit3, Loader2, Save, X, Award, Map, Star, Plane, Briefcase } from "lucide-react";
 import { useNavigate } from "react-router";
 import { tripAPI, Trip } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -135,6 +135,41 @@ const Profile = () => {
               <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-white/60">{label}</p>
             </div>
           ))}
+        </div>
+        
+        <div className="mt-8 pt-8 border-t border-slate-200 dark:border-white/10">
+          <h3 className="mb-4 flex items-center gap-2 text-xl font-black text-slate-800 dark:text-white">
+            <Award className="h-6 w-6 text-yellow-500" /> Traveler Badges
+          </h3>
+          <div className="flex flex-wrap gap-4">
+            {stats.trips >= 1 ? (
+              <div className="flex items-center gap-3 rounded-full border border-yellow-200 bg-yellow-50 px-4 py-2 dark:border-yellow-500/30 dark:bg-yellow-500/10">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-500 text-white"><Star className="h-4 w-4" /></div>
+                <div><p className="text-sm font-bold text-yellow-700 dark:text-yellow-300">First Journey</p></div>
+              </div>
+            ) : <p className="text-sm text-slate-400">Create your first trip to earn a badge!</p>}
+            
+            {stats.trips >= 3 && (
+              <div className="flex items-center gap-3 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 dark:border-indigo-500/30 dark:bg-indigo-500/10">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500 text-white"><Plane className="h-4 w-4" /></div>
+                <div><p className="text-sm font-bold text-indigo-700 dark:text-indigo-300">Globetrotter</p></div>
+              </div>
+            )}
+            
+            {stats.destinations >= 3 && (
+              <div className="flex items-center gap-3 rounded-full border border-rose-200 bg-rose-50 px-4 py-2 dark:border-rose-500/30 dark:bg-rose-500/10">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-500 text-white"><Map className="h-4 w-4" /></div>
+                <div><p className="text-sm font-bold text-rose-700 dark:text-rose-300">Explorer</p></div>
+              </div>
+            )}
+
+            {stats.budget > 5000 && (
+              <div className="flex items-center gap-3 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white"><Briefcase className="h-4 w-4" /></div>
+                <div><p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">High Roller</p></div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

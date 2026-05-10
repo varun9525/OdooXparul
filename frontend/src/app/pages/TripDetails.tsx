@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { AlertCircle, Calendar, DollarSign, FileText, ListChecks, Loader2, Map, MapPin, Printer, Share2, Trash2 } from "lucide-react";
+import { AlertCircle, Calendar, DollarSign, FileText, ListChecks, Loader2, Map, MapPin, Printer, Share2, Trash2, CalendarPlus } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
 import { format, parseISO } from "date-fns";
 import ItineraryBuilder from "../components/ItineraryBuilder";
@@ -49,8 +49,37 @@ const TripDetails = () => {
     { id: "itinerary", label: "Itinerary", icon: Map },
     { id: "budget", label: "Budget", icon: DollarSign },
     { id: "checklist", label: "Checklist", icon: ListChecks },
-    { id: "notes", label: "Notes", icon: FileText },
+    { id: "notes", label: "Journal & Memories", icon: FileText },
   ];
+
+  const downloadICS = () => {
+    if (!trip) return;
+    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Traveloop//Trip Itinerary//EN\n";
+    
+    trip.itinerary?.forEach((item) => {
+      const startDate = new Date(`${item.date}T${item.time || '00:00'}`);
+      const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+      const formatICSDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      icsContent += "BEGIN:VEVENT\n";
+      icsContent += `DTSTART:${formatICSDate(startDate)}\n`;
+      icsContent += `DTEND:${formatICSDate(endDate)}\n`;
+      icsContent += `SUMMARY:${item.title}\n`;
+      if (item.location) icsContent += `LOCATION:${item.location}\n`;
+      if (item.description) icsContent += `DESCRIPTION:${item.description}\n`;
+      icsContent += "END:VEVENT\n";
+    });
+    
+    icsContent += "END:VCALENDAR";
+    
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${trip.title.replace(/\s+/g, '_')}_Itinerary.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (loading) {
     return (
@@ -109,6 +138,10 @@ const TripDetails = () => {
                 >
                   <Share2 className="h-4 w-4" />
                   <span id="share-btn-text">Share</span>
+                </button>
+                <button onClick={downloadICS} className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/15 px-5 py-2.5 font-bold text-white backdrop-blur-md transition hover:bg-white/25">
+                  <CalendarPlus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add to Calendar</span>
                 </button>
                 <button onClick={() => navigate(`/invoice/${id}`)} className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/15 px-5 py-2.5 font-bold text-white backdrop-blur-md transition hover:bg-white/25">
                   <Printer className="h-4 w-4" />

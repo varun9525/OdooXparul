@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { motion } from "motion/react";
-import { Plus, Trash2, Edit2, X, Check } from "lucide-react";
+import { Plus, Trash2, Edit2, X, Check, DollarSign } from "lucide-react";
 import { budgetAPI, BudgetItem } from "../../services/api";
+import { CurrencyConverter } from "./CurrencyConverter";
 
 const colors = ["#6366f1", "#8b5cf6", "#ec4899", "#10b981", "#f59e0b", "#06b6d4"];
 
@@ -142,6 +143,10 @@ const BudgetView = ({
             <p className={`text-3xl font-black ${item.tone}`}>{item.value}</p>
           </motion.div>
         ))}
+      </div>
+
+      <div className="mb-6">
+        <CurrencyConverter baseCurrency={currency} />
       </div>
 
       <div className="mb-3 flex flex-wrap gap-2">

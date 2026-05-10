@@ -57,6 +57,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [countdown, setCountdown] = useState("");
 
   const loadTrips = useCallback(async (silent = false) => {
     if (silent) {
@@ -111,6 +112,28 @@ const Dashboard = () => {
     };
   }, [trips]);
 
+  useEffect(() => {
+    if (!stats.nextTrip) return;
+    const start = parseISO(stats.nextTrip.startDate);
+    
+    const updateCountdown = () => {
+      const now = new Date();
+      const diff = start.getTime() - now.getTime();
+      if (diff <= 0) {
+        setCountdown("Trip has started!");
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const mins = Math.floor((diff / 1000 / 60) % 60);
+      setCountdown(`${days}d ${hours}h ${mins}m`);
+    };
+    
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 60000); // update every minute
+    return () => clearInterval(interval);
+  }, [stats.nextTrip]);
+
   const heroTrip = stats.nextTrip ?? trips[0];
   const displayName = user?.firstName || user?.username || "Traveler";
 
@@ -150,6 +173,14 @@ const Dashboard = () => {
             <h1 className="mb-5 text-4xl font-black tracking-tight text-white md:text-7xl">
               {heroTrip ? heroTrip.title : "Plan your first journey"}
             </h1>
+            
+            {heroTrip && getTripPhase(heroTrip) === "upcoming" && countdown && (
+              <div className="mb-5 inline-flex animate-pulse items-center gap-2 rounded-xl bg-indigo-500/30 px-4 py-2 font-bold text-indigo-100 backdrop-blur-md">
+                <Clock3 className="h-5 w-5" />
+                Starts in: {countdown}
+              </div>
+            )}
+
             <p className="mb-7 max-w-2xl text-base font-medium leading-7 text-white/75 md:text-lg">
               {heroTrip
                 ? `${heroTrip.destination} is saved in your trip table from ${formatDate(heroTrip.startDate)} to ${formatDate(heroTrip.endDate)}.`
