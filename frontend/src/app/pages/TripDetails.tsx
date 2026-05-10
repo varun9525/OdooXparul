@@ -91,9 +91,19 @@ const TripDetails = () => {
                 </p>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => navigate(`/share/${id}`)} className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/15 px-5 py-2.5 font-bold text-white backdrop-blur-md transition hover:bg-white/25">
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/share/${id}`);
+                    const btn = document.getElementById('share-btn-text');
+                    if(btn) {
+                      btn.innerText = 'Copied!';
+                      setTimeout(() => { btn.innerText = 'Share'; }, 2000);
+                    }
+                  }} 
+                  className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/15 px-5 py-2.5 font-bold text-white backdrop-blur-md transition hover:bg-white/25"
+                >
                   <Share2 className="h-4 w-4" />
-                  Share
+                  <span id="share-btn-text">Share</span>
                 </button>
                 <button onClick={() => navigate(`/invoice/${id}`)} className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/15 px-5 py-2.5 font-bold text-white backdrop-blur-md transition hover:bg-white/25">
                   <Printer className="h-4 w-4" />
