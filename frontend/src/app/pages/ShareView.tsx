@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
-import { Calendar, Heart, Loader2, MapPin, Share2 } from "lucide-react";
+import { Calendar, Copy, Heart, Loader2, MapPin, Share2, Check, LogIn } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
-import { publicAPI, Trip } from "../../services/api";
+import { publicAPI, tripAPI, itineraryAPI, packingAPI, budgetAPI, Trip } from "../../services/api";
 
 const ShareView = () => {
   const { id } = useParams();
@@ -10,10 +10,14 @@ const ShareView = () => {
   const { scrollY } = useScroll();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copying, setCopying] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const y1 = useTransform(scrollY, [0, 1000], [0, 300]);
   const y2 = useTransform(scrollY, [0, 1000], [0, -100]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
+
+  const isLoggedIn = !!localStorage.getItem("authToken");
 
   useEffect(() => {
     const load = async () => {
@@ -24,6 +28,69 @@ const ShareView = () => {
     };
     load();
   }, [id]);
+
+  const handleCopyTrip = async () => {
+    if (!trip || !isLoggedIn) return;
+    setCopying(true);
+    try {
+      // Step 1: Create the trip
+      const res = await tripAPI.createTrip({
+        title: `${trip.title} (Copy)`,
+        destination: trip.destination,
+        startDate: trip.startDate,
+        endDate: trip.endDate,
+        description: trip.description,
+        imageUrl: trip.imageUrl,
+        totalBudget: trip.totalBudget,
+        currency: trip.currency,
+      });
+
+      const newTripId = res.data.id;
+
+      // Step 2: Copy itinerary items
+      if (trip.itinerary && trip.itinerary.length > 0) {
+        for (const item of trip.itinerary) {
+          await itineraryAPI.addItineraryItem(newTripId, {
+            title: item.title,
+            description: item.description,
+            time: item.time,
+            date: item.date,
+            location: item.location,
+            type: item.type,
+          });
+        }
+      }
+
+      // Step 3: Copy packing list
+      if (trip.packingList && trip.packingList.length > 0) {
+        for (const item of trip.packingList) {
+          await packingAPI.addPackingItem(newTripId, {
+            name: item.name,
+            category: item.category,
+          });
+        }
+      }
+
+      // Step 4: Copy budget items
+      if (trip.budget?.items && trip.budget.items.length > 0) {
+        for (const item of trip.budget.items) {
+          await budgetAPI.addBudgetItem(newTripId, {
+            category: item.category,
+            amount: item.amount,
+            date: item.date,
+            description: item.description,
+          });
+        }
+      }
+
+      setCopySuccess(true);
+      setTimeout(() => navigate(`/trips/${newTripId}`), 1500);
+    } catch (err) {
+      alert("Failed to copy trip. Please try again.");
+    } finally {
+      setCopying(false);
+    }
+  };
 
   if (loading || !trip) {
     return <div className="flex min-h-screen items-center justify-center bg-slate-950"><Loader2 className="h-9 w-9 animate-spin text-indigo-300" /></div>;
@@ -62,13 +129,38 @@ const ShareView = () => {
           <div className="space-y-8">
             <h2 className="mb-6 text-4xl font-black text-slate-900 dark:text-white">The Journey</h2>
             <p className="text-xl font-light leading-relaxed text-slate-700 dark:text-white/70">{trip.description || "A shared Traveloop itinerary."}</p>
-            <div className="flex gap-4">
-              <button className="flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-3 font-bold text-white shadow-lg shadow-indigo-500/30 transition-all hover:bg-indigo-500">
-                <Heart className="h-5 w-5" />
-                Save Itinerary
-              </button>
-              <button className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-6 py-3 font-bold text-slate-700 transition-all hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20">
-                <Share2 className="h-5 w-5" />
+            <div className="flex flex-wrap gap-3">
+              {isLoggedIn ? (
+                <button 
+                  onClick={handleCopyTrip}
+                  disabled={copying || copySuccess}
+                  className={`flex items-center gap-2 rounded-full px-6 py-3 font-bold shadow-lg transition-all ${
+                    copySuccess 
+                      ? "bg-emerald-500 text-white shadow-emerald-500/30" 
+                      : "bg-indigo-600 text-white shadow-indigo-500/30 hover:bg-indigo-500 disabled:opacity-60"
+                  }`}
+                >
+                  {copySuccess ? (
+                    <><Check className="h-5 w-5" /> Trip Copied!</>
+                  ) : copying ? (
+                    <><Loader2 className="h-5 w-5 animate-spin" /> Copying...</>
+                  ) : (
+                    <><Copy className="h-5 w-5" /> Copy This Trip</>
+                  )}
+                </button>
+              ) : (
+                <button 
+                  onClick={() => navigate("/login")}
+                  className="flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-3 font-bold text-white shadow-lg shadow-indigo-500/30 transition-all hover:bg-indigo-500"
+                >
+                  <LogIn className="h-5 w-5" /> Login to Copy Trip
+                </button>
+              )}
+              <button 
+                onClick={() => { navigator.clipboard.writeText(window.location.href); }}
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-6 py-3 font-bold text-slate-700 transition-all hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+              >
+                <Share2 className="h-5 w-5" /> Share Link
               </button>
             </div>
           </div>
@@ -82,12 +174,42 @@ const ShareView = () => {
                 <div>
                   <div className="mb-1 text-sm font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">{item.date} {item.time || ""}</div>
                   <h3 className="text-xl font-black text-slate-900 dark:text-white">{item.title}</h3>
+                  {item.location && <p className="mt-1 text-sm text-slate-500 dark:text-white/50">{item.location}</p>}
                 </div>
               </motion.div>
             ))}
             {(trip.itinerary ?? []).length === 0 && <div className="rounded-3xl border border-dashed border-slate-300 p-8 text-center font-semibold text-slate-500 dark:border-white/15 dark:text-white/50">No public itinerary items yet.</div>}
           </div>
         </div>
+
+        {/* Packing & Budget preview */}
+        {((trip.packingList && trip.packingList.length > 0) || (trip.budget?.items && trip.budget.items.length > 0)) && (
+          <div className="mt-16 grid gap-8 md:grid-cols-2">
+            {trip.packingList && trip.packingList.length > 0 && (
+              <div className="rounded-3xl border border-slate-200 bg-white/70 p-6 backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+                <h3 className="mb-4 text-xl font-black text-slate-800 dark:text-white">Packing List</h3>
+                <div className="flex flex-wrap gap-2">
+                  {trip.packingList.map(item => (
+                    <span key={item.id} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/70">{item.name}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {trip.budget?.items && trip.budget.items.length > 0 && (
+              <div className="rounded-3xl border border-slate-200 bg-white/70 p-6 backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+                <h3 className="mb-4 text-xl font-black text-slate-800 dark:text-white">Budget Breakdown</h3>
+                <div className="space-y-2">
+                  {trip.budget.items.map(item => (
+                    <div key={item.id} className="flex justify-between text-sm">
+                      <span className="font-semibold text-slate-600 dark:text-white/70">{item.category}</span>
+                      <span className="font-bold text-slate-800 dark:text-white">${item.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

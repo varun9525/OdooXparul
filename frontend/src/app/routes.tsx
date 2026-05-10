@@ -1,6 +1,6 @@
 import { createBrowserRouter, Outlet, useNavigate, useLocation, Navigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
-import { Compass, Home, Map, Users, Settings, LogOut, Search, LayoutDashboard, Sun, Moon } from "lucide-react";
+import { Compass, Home, Map, Users, Settings, LogOut, Search, LayoutDashboard, Sun, Moon, Sparkles } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -18,6 +18,7 @@ import Community from "./pages/Community";
 import AdminPanel from "./pages/AdminPanel";
 import Invoice from "./pages/Invoice";
 import ShareView from "./pages/ShareView";
+import ActivitySearch from "./pages/ActivitySearch";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -90,6 +91,7 @@ const GlassSidebar = () => {
       { icon: Home, label: "Home", path: "/" },
       { icon: Map, label: "My Trips", path: "/trips" },
       { icon: Search, label: "Explore", path: "/search" },
+      { icon: Sparkles, label: "Activities", path: "/activities" },
       { icon: Users, label: "Community", path: "/community" },
     ];
   }
@@ -242,6 +244,7 @@ export const router = createBrowserRouter([
       { path: "trips/:id", element: <TripDetails /> },
       { path: "profile", element: <Profile /> },
       { path: "search", element: <SearchPage /> },
+      { path: "activities", element: <ActivitySearch /> },
       { path: "community", element: <Community /> },
       { path: "admin", element: <AdminRoute><AdminPanel /></AdminRoute> },
       { path: "invoice/:id", element: <Invoice /> },
