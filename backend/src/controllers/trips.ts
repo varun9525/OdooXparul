@@ -8,14 +8,32 @@ export const getTripSummaryController = async (req: any, res: Response) => {
   try {
     const userId = req.userId;
 
-    const tripsResult = await db.query(
-      'SELECT id, title, destination, start_date, end_date, status, total_budget, currency FROM trips WHERE user_id = $1',
-      [userId]
-    );
-    const budgetResult = await db.query(
-      'SELECT bi.amount, bi.category FROM budget_items bi INNER JOIN trips t ON t.id = bi.trip_id WHERE t.user_id = $1',
-      [userId]
-    );
+    // Check if the user is an admin
+    const userResult = await db.query('SELECT email FROM users WHERE id = $1', [userId]);
+    const isAdmin = userResult.rows[0]?.email === 'admin@traveloop.com';
+
+    let tripsResult;
+    let budgetResult;
+
+    if (isAdmin) {
+      // Global data for admin
+      tripsResult = await db.query(
+        'SELECT id, title, destination, start_date, end_date, status, total_budget, currency FROM trips'
+      );
+      budgetResult = await db.query(
+        'SELECT amount, category FROM budget_items'
+      );
+    } else {
+      // User-specific data
+      tripsResult = await db.query(
+        'SELECT id, title, destination, start_date, end_date, status, total_budget, currency FROM trips WHERE user_id = $1',
+        [userId]
+      );
+      budgetResult = await db.query(
+        'SELECT bi.amount, bi.category FROM budget_items bi INNER JOIN trips t ON t.id = bi.trip_id WHERE t.user_id = $1',
+        [userId]
+      );
+    }
 
     const trips = tripsResult.rows;
     const destinations = new Set(trips.map((trip: any) => String(trip.destination || '').toLowerCase()).filter(Boolean));

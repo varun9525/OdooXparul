@@ -21,7 +21,8 @@ import ShareView from "./pages/ShareView";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -31,6 +32,34 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Prevent admin from accessing standard user trip-planning pages
+  if (user?.email === 'admin@traveloop.com') {
+    const isTripPage = location.pathname === '/' || location.pathname.startsWith('/trip');
+    if (isTripPage) {
+      return <Navigate to="/admin" replace />;
+    }
+  }
+
+  return <>{children}</>;
+};
+
+// Admin Route Component
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Check if the user is the admin
+  if (user?.email !== 'admin@traveloop.com') {
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 };
 
@@ -38,7 +67,7 @@ const GlassSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, setTheme } = useTheme();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -48,13 +77,22 @@ const GlassSidebar = () => {
     navigate("/login");
   };
 
-  const navItems = [
-    { icon: Home, label: "Home", path: "/" },
-    { icon: Map, label: "My Trips", path: "/trips" },
-    { icon: Search, label: "Explore", path: "/search" },
-    { icon: Users, label: "Community", path: "/community" },
-    { icon: LayoutDashboard, label: "Admin", path: "/admin" },
-  ];
+  let navItems;
+
+  if (user?.email === 'admin@traveloop.com') {
+    // Admin only sees Analytics (and maybe Community if they want to monitor it)
+    navItems = [
+      { icon: LayoutDashboard, label: "Analytics Overview", path: "/admin" },
+    ];
+  } else {
+    // Regular users see standard trip planning tools
+    navItems = [
+      { icon: Home, label: "Home", path: "/" },
+      { icon: Map, label: "My Trips", path: "/trips" },
+      { icon: Search, label: "Explore", path: "/search" },
+      { icon: Users, label: "Community", path: "/community" },
+    ];
+  }
 
   return (
     <div className="w-20 md:w-64 h-full bg-white/50 dark:bg-white/5 backdrop-blur-2xl border-r border-slate-200 dark:border-white/10 flex flex-col justify-between py-8 transition-all duration-300 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.1)] dark:shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] z-20">
@@ -201,7 +239,7 @@ export const router = createBrowserRouter([
       { path: "profile", element: <Profile /> },
       { path: "search", element: <SearchPage /> },
       { path: "community", element: <Community /> },
-      { path: "admin", element: <AdminPanel /> },
+      { path: "admin", element: <AdminRoute><AdminPanel /></AdminRoute> },
       { path: "invoice/:id", element: <Invoice /> },
     ],
   },
