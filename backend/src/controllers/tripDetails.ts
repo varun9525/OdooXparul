@@ -60,6 +60,40 @@ export const deleteBudgetItemController = async (req: any, res: Response) => {
   }
 };
 
+export const updateBudgetItemController = async (req: any, res: Response) => {
+  try {
+    const { tripId, itemId } = req.params;
+    const userId = req.userId;
+    const { category, amount, date, description } = req.body;
+
+    const tripCheck = await db.query('SELECT id FROM trips WHERE id = $1 AND user_id = $2', [tripId, userId]);
+    if (tripCheck.rows.length === 0) {
+      return sendError(res, 'Trip not found', 404);
+    }
+
+    const result = await db.query(
+      'UPDATE budget_items SET category = $1, amount = $2, date = $3, description = $4 WHERE id = $5 AND trip_id = $6 RETURNING id, category, amount, date, description',
+      [category, amount, date, description, itemId, tripId]
+    );
+
+    if (result.rows.length === 0) {
+      return sendError(res, 'Budget item not found', 404);
+    }
+
+    const item = result.rows[0];
+    sendSuccess(res, {
+      id: item.id,
+      category: item.category,
+      amount: parseFloat(item.amount),
+      date: item.date,
+      description: item.description,
+    });
+  } catch (error) {
+    console.error('Update budget item error:', error);
+    sendError(res, 'Failed to update budget item', 500);
+  }
+};
+
 // Itinerary Controllers
 export const addItineraryItemController = async (req: any, res: Response) => {
   try {
@@ -116,6 +150,42 @@ export const deleteItineraryItemController = async (req: any, res: Response) => 
   } catch (error) {
     console.error('Delete itinerary item error:', error);
     sendError(res, 'Failed to delete itinerary item', 500);
+  }
+};
+
+export const updateItineraryItemController = async (req: any, res: Response) => {
+  try {
+    const { tripId, itemId } = req.params;
+    const userId = req.userId;
+    const { title, description, time, date, location, type } = req.body;
+
+    const tripCheck = await db.query('SELECT id FROM trips WHERE id = $1 AND user_id = $2', [tripId, userId]);
+    if (tripCheck.rows.length === 0) {
+      return sendError(res, 'Trip not found', 404);
+    }
+
+    const result = await db.query(
+      'UPDATE itinerary_items SET title = $1, description = $2, time = $3, date = $4, location = $5, type = $6 WHERE id = $7 AND trip_id = $8 RETURNING id, title, description, time, date, location, type',
+      [title, description, time, date, location, type, itemId, tripId]
+    );
+
+    if (result.rows.length === 0) {
+      return sendError(res, 'Itinerary item not found', 404);
+    }
+
+    const item = result.rows[0];
+    sendSuccess(res, {
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      time: item.time,
+      date: item.date,
+      location: item.location,
+      type: item.type,
+    });
+  } catch (error) {
+    console.error('Update itinerary item error:', error);
+    sendError(res, 'Failed to update itinerary item', 500);
   }
 };
 
@@ -264,5 +334,42 @@ export const deleteNoteController = async (req: any, res: Response) => {
   } catch (error) {
     console.error('Delete note error:', error);
     sendError(res, 'Failed to delete note', 500);
+  }
+};
+
+export const updateNoteController = async (req: any, res: Response) => {
+  try {
+    const { tripId, noteId } = req.params;
+    const userId = req.userId;
+    const { title, content } = req.body;
+
+    const tripCheck = await db.query('SELECT id FROM trips WHERE id = $1 AND user_id = $2', [tripId, userId]);
+    if (tripCheck.rows.length === 0) {
+      return sendError(res, 'Trip not found', 404);
+    }
+
+    if (!title || !content) {
+      return sendError(res, 'Title and content are required', 400);
+    }
+
+    const result = await db.query(
+      'UPDATE trip_notes SET title = $1, content = $2 WHERE id = $3 AND trip_id = $4 RETURNING id, title, content, created_at',
+      [title, content, noteId, tripId]
+    );
+
+    if (result.rows.length === 0) {
+      return sendError(res, 'Note not found', 404);
+    }
+
+    const note = result.rows[0];
+    sendSuccess(res, {
+      id: note.id,
+      title: note.title,
+      content: note.content,
+      createdAt: note.created_at,
+    });
+  } catch (error) {
+    console.error('Update note error:', error);
+    sendError(res, 'Failed to update note', 500);
   }
 };

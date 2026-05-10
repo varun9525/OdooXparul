@@ -385,6 +385,25 @@ export const budgetAPI = {
 
     return response.json();
   },
+
+  updateBudgetItem: async (tripId: string, itemId: string, itemData: {
+    category?: string;
+    amount?: number;
+    date?: string;
+    description?: string;
+  }): Promise<{ success: boolean; data: BudgetItem }> => {
+    const response = await fetch(`${API_BASE_URL}/trips/${tripId}/budget/${itemId}`, {
+      method: 'PUT',
+      headers: getHeaders(true),
+      body: JSON.stringify(itemData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update budget item');
+    }
+
+    return response.json();
+  },
 };
 
 // Itinerary APIs
@@ -418,6 +437,27 @@ export const itineraryAPI = {
 
     if (!response.ok) {
       throw new Error('Failed to delete itinerary item');
+    }
+
+    return response.json();
+  },
+
+  updateItineraryItem: async (tripId: string, itemId: string, itemData: {
+    title?: string;
+    description?: string;
+    time?: string;
+    date?: string;
+    location?: string;
+    type?: string;
+  }): Promise<{ success: boolean; data: ItineraryItem }> => {
+    const response = await fetch(`${API_BASE_URL}/trips/${tripId}/itinerary/${itemId}`, {
+      method: 'PUT',
+      headers: getHeaders(true),
+      body: JSON.stringify(itemData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update itinerary item');
     }
 
     return response.json();
@@ -498,6 +538,23 @@ export const notesAPI = {
 
     if (!response.ok) {
       throw new Error('Failed to delete note');
+    }
+
+    return response.json();
+  },
+
+  updateNote: async (tripId: string, noteId: string, noteData: {
+    title?: string;
+    content?: string;
+  }): Promise<{ success: boolean; data: TripNote }> => {
+    const response = await fetch(`${API_BASE_URL}/trips/${tripId}/notes/${noteId}`, {
+      method: 'PUT',
+      headers: getHeaders(true),
+      body: JSON.stringify(noteData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update note');
     }
 
     return response.json();
