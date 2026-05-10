@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Check, Edit2, Plus, Search, Trash2, X } from "lucide-react";
 import { notesAPI, TripNote } from "../../services/api";
-import { Edit2, X, Check } from "lucide-react";
 
 const TripNotesView = ({
   tripId,
@@ -38,33 +37,33 @@ const TripNotesView = ({
 
   const deleteNote = async (noteId: string) => {
     await notesAPI.deleteNote(tripId, noteId);
-
-      const startEdit = (note: TripNote) => {
-        setEditingId(note.id);
-        setEditForm({ title: note.title, content: note.content });
-      };
-
-      const saveEdit = async () => {
-        if (!editingId || !editForm.title.trim() || !editForm.content.trim()) return;
-
-        setSaving(true);
-        try {
-          await notesAPI.updateNote(tripId, editingId, {
-            title: editForm.title.trim(),
-            content: editForm.content.trim(),
-          });
-          setEditingId(null);
-          await onChanged();
-        } finally {
-          setSaving(false);
-        }
-      };
-
-      const cancelEdit = () => {
-        setEditingId(null);
-        setEditForm({ title: "", content: "" });
-      };
     await onChanged();
+  };
+
+  const startEdit = (note: TripNote) => {
+    setEditingId(note.id);
+    setEditForm({ title: note.title, content: note.content });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editForm.title.trim() || !editForm.content.trim()) return;
+
+    setSaving(true);
+    try {
+      await notesAPI.updateNote(tripId, editingId, {
+        title: editForm.title.trim(),
+        content: editForm.content.trim(),
+      });
+      setEditingId(null);
+      await onChanged();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({ title: "", content: "" });
   };
 
   return (
@@ -102,11 +101,11 @@ const TripNotesView = ({
                 <textarea value={editForm.content} onChange={(e) => setEditForm({ ...editForm, content: e.target.value })} placeholder="Write trip detail, booking info, or reminders..." rows={4} className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
               </div>
               <div className="flex gap-2">
-                <button onClick={saveEdit} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2 font-bold text-white transition hover:bg-green-500 disabled:opacity-60 flex-1">
+                <button type="button" onClick={saveEdit} disabled={saving} className="inline-flex flex-1 items-center gap-2 rounded-xl bg-green-600 px-5 py-2 font-bold text-white transition hover:bg-green-500 disabled:opacity-60">
                   <Check className="h-4 w-4" />
                   Save
                 </button>
-                <button onClick={cancelEdit} disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-400 px-5 py-2 font-bold text-white transition hover:bg-slate-500 disabled:opacity-60">
+                <button type="button" onClick={cancelEdit} disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-400 px-5 py-2 font-bold text-white transition hover:bg-slate-500 disabled:opacity-60">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -116,10 +115,10 @@ const TripNotesView = ({
               <div className="mb-2 flex items-start justify-between gap-4">
                 <h3 className="text-xl font-black text-slate-900 dark:text-white">{note.title}</h3>
                 <div className="flex gap-2">
-                  <button onClick={() => startEdit(note)} className="rounded-lg p-2 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10">
+                  <button type="button" onClick={() => startEdit(note)} className="rounded-lg p-2 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10">
                     <Edit2 className="h-4 w-4" />
                   </button>
-                  <button onClick={() => deleteNote(note.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
+                  <button type="button" onClick={() => deleteNote(note.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
