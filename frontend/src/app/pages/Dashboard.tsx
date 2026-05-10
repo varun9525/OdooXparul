@@ -16,6 +16,7 @@ import {
 import { format, isAfter, isBefore, isWithinInterval, parseISO } from "date-fns";
 import { tripAPI, Trip } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { DashboardSkeleton } from "../components/ui/Skeleton";
 
 const fallbackImages = [
   "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200",
@@ -137,6 +138,10 @@ const Dashboard = () => {
   const heroTrip = stats.nextTrip ?? trips[0];
   const displayName = user?.firstName || user?.username || "Traveler";
 
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -240,12 +245,6 @@ const Dashboard = () => {
             New Trip
           </button>
         </div>
-
-        {loading && (
-          <div className="flex min-h-[220px] items-center justify-center rounded-3xl border border-slate-200 bg-white/60 dark:border-white/10 dark:bg-white/5">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-300" />
-          </div>
-        )}
 
         {!loading && error && (
           <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">

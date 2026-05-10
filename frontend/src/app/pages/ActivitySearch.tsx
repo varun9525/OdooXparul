@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Camera, Coffee, Compass, Filter, Footprints, Loader2, MapPin, Mountain, Plus, ShoppingBag, Utensils, X } from "lucide-react";
 import { useNavigate } from "react-router";
 import { itineraryAPI, tripAPI, Trip } from "../../services/api";
+import { Skeleton } from "../components/ui/Skeleton";
 
 // Activity database
 const ACTIVITY_DATABASE = [
@@ -141,7 +142,16 @@ const ActivitySearch = () => {
 
       {/* Activity Grid */}
       {loading ? (
-        <div className="flex min-h-[200px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+              <Skeleton className="mb-4 h-40 w-full rounded-xl" />
+              <Skeleton className="mb-2 h-6 w-3/4" />
+              <Skeleton className="mb-4 h-4 w-1/2" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filteredActivities.map((activity, index) => (

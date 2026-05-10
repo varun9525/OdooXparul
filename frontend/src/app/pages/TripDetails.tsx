@@ -10,6 +10,7 @@ import TripNotesView from "../components/TripNotesView";
 import { tripAPI, Trip } from "../../services/api";
 import { WeatherWidget } from "../components/WeatherWidget";
 import { DestinationMap } from "../components/DestinationMap";
+import { TripDetailsSkeleton } from "../components/ui/Skeleton";
 
 const formatDate = (value: string) => {
   try {
@@ -108,11 +109,7 @@ const TripDetails = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[520px] items-center justify-center">
-        <Loader2 className="h-9 w-9 animate-spin text-indigo-600 dark:text-indigo-300" />
-      </div>
-    );
+    return <TripDetailsSkeleton />;
   }
 
   if (error || !trip) {

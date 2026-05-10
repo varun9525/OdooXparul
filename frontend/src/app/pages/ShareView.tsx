@@ -3,6 +3,7 @@ import { motion, useScroll, useTransform } from "motion/react";
 import { Calendar, Copy, Heart, Loader2, MapPin, Share2, Check, LogIn } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
 import { publicAPI, tripAPI, itineraryAPI, packingAPI, budgetAPI, Trip } from "../../services/api";
+import { Skeleton } from "../components/ui/Skeleton";
 
 const ShareView = () => {
   const { id } = useParams();
@@ -93,7 +94,26 @@ const ShareView = () => {
   };
 
   if (loading || !trip) {
-    return <div className="flex min-h-screen items-center justify-center bg-slate-950"><Loader2 className="h-9 w-9 animate-spin text-indigo-300" /></div>;
+    return (
+      <div className="min-h-screen bg-slate-950 p-8 space-y-8">
+        <Skeleton className="h-[60vh] w-full rounded-3xl" />
+        <div className="mx-auto max-w-4xl space-y-8">
+          <div className="grid gap-8 md:grid-cols-2">
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-64" />
+              <Skeleton className="h-24 w-full" />
+              <div className="flex gap-4">
+                <Skeleton className="h-12 w-32 rounded-full" />
+                <Skeleton className="h-12 w-32 rounded-full" />
+              </div>
+            </div>
+            <div className="space-y-4">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

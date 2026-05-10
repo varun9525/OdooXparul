@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Globe, Loader2, MapPin, Plus, Search as SearchIcon, Star, X } from "lucide-react";
 import { useNavigate } from "react-router";
 import { communityAPI, CommunityPost, itineraryAPI, tripAPI, Trip } from "../../services/api";
+import { Skeleton, TripCardSkeleton } from "../components/ui/Skeleton";
 
 // Popular cities database with region, country, cost index, popularity
 const CITY_DATABASE = [
@@ -150,8 +151,19 @@ const SearchPage = () => {
       </div>
 
       {loading ? (
-        <div className="flex min-h-[220px] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <div className="space-y-8">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5">
+                <Skeleton className="mb-4 h-32 w-full rounded-xl" />
+                <Skeleton className="mb-2 h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => <TripCardSkeleton key={i} />)}
+          </div>
         </div>
       ) : (
         <div className="space-y-8">

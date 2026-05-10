@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Heart, Loader2, MessageSquare, Plus, Share2 } from "lucide-react";
 import { communityAPI, CommunityPost } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { Skeleton } from "../components/ui/Skeleton";
 
 const Community = () => {
   const { user } = useAuth();
@@ -59,8 +60,25 @@ const Community = () => {
       )}
 
       {loading ? (
-        <div className="flex min-h-[220px] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <div className="space-y-8">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-white/5 md:p-8">
+              <div className="mb-6 flex items-center gap-4">
+                <Skeleton className="h-14 w-14 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+              <Skeleton className="mb-3 h-8 w-3/4" />
+              <Skeleton className="mb-3 h-4 w-full" />
+              <Skeleton className="mb-6 h-4 w-5/6" />
+              <div className="flex gap-8 border-t border-slate-100 pt-6 dark:border-white/10">
+                <Skeleton className="h-6 w-12 rounded-full" />
+                <Skeleton className="h-6 w-12 rounded-full" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="space-y-8">

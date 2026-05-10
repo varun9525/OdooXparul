@@ -4,6 +4,7 @@ import { Edit3, Loader2, Save, X, Award, Map, Star, Plane, Briefcase, Info } fro
 import { useNavigate } from "react-router";
 import { tripAPI, Trip } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { ProfileSkeleton } from "../components/ui/Skeleton";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -61,6 +62,10 @@ const Profile = () => {
   };
 
   const displayName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.username || "Traveler";
+
+  if (loading) {
+    return <ProfileSkeleton />;
+  }
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-5xl space-y-8 py-4 pb-12">

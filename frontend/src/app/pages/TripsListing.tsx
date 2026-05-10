@@ -4,6 +4,7 @@ import { AlertCircle, Calendar, Filter, Loader2, MapPin, Plus, Search } from "lu
 import { useNavigate } from "react-router";
 import { format, isAfter, isBefore, isWithinInterval, parseISO } from "date-fns";
 import { tripAPI, Trip } from "../../services/api";
+import { TripCardSkeleton } from "../components/ui/Skeleton";
 
 const phaseFor = (trip: Trip) => {
   const now = new Date();
@@ -141,8 +142,8 @@ const TripsListing = () => {
       </div>
 
       {loading && (
-        <div className="flex min-h-[220px] items-center justify-center rounded-3xl border border-slate-200 bg-white/60 dark:border-white/10 dark:bg-white/5">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-300" />
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => <TripCardSkeleton key={i} />)}
         </div>
       )}
 
