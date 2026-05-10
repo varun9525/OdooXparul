@@ -41,12 +41,13 @@ export function Layout() {
         </div>
 
         <div className="flex flex-col gap-6 w-full items-center">
-          <button className="p-4 rounded-2xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/10 transition-colors">
+          <button className="p-4 rounded-2xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/10 transition-all duration-300 hover:scale-110">
             <Settings className="w-6 h-6" />
           </button>
-          <button className="p-4 rounded-2xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/10 transition-colors">
+          <button className="p-4 rounded-2xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/10 transition-all duration-300 hover:scale-110">
             <LogOut className="w-6 h-6" />
           </button>
+          <div className="mt-4 text-[10px] text-gray-400 dark:text-gray-600 font-medium tracking-tighter">V1.0</div>
         </div>
       </motion.nav>
 
@@ -81,6 +82,9 @@ export function Layout() {
           className="w-full h-full glass-panel rounded-[2rem] overflow-hidden relative shadow-2xl"
         >
           <Outlet />
+          <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
+            <p className="text-[10px] text-gray-400/50 font-medium">© 2026 Traveloop. All rights reserved.</p>
+          </div>
         </motion.div>
       </main>
     </div>

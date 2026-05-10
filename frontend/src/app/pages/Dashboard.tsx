@@ -231,8 +231,8 @@ const Dashboard = () => {
 
       <section className="space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white">Your Saved Trips</h2>
+          <div className="space-y-1">
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Your Saved Trips</h2>
             <p className="text-sm font-medium text-slate-500 dark:text-white/55">
               These cards are loaded from the backend for the signed-in user.
             </p>

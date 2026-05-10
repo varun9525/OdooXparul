@@ -21,18 +21,6 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/public', publicRoutes);
-
-// Protected routes
-app.use('/api/trips', authMiddleware, tripRoutes);
-app.use('/api/community', authMiddleware, communityRoutes);
-
-// Health check
-app.get('/api/health', (_req, res: Response) => {
-  res.json({ status: 'OK', message: 'Traveloop backend is running' });
-});
 
 // Initialize database and start server
 const startServer = async () => {
