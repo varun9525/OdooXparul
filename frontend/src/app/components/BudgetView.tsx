@@ -1,83 +1,162 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { motion } from 'motion/react';
+import { useMemo, useState } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { motion } from "motion/react";
+import { Plus, Trash2 } from "lucide-react";
+import { budgetAPI, BudgetItem } from "../../services/api";
 
-const data = [
-  { name: 'Flights', value: 800, color: '#6366f1' },
-  { name: 'Hotel', value: 1200, color: '#8b5cf6' },
-  { name: 'Food', value: 400, color: '#ec4899' },
-  { name: 'Activities', value: 300, color: '#10b981' },
-];
+const colors = ["#6366f1", "#8b5cf6", "#ec4899", "#10b981", "#f59e0b", "#06b6d4"];
 
-const barData = [
-  { day: 'Day 1', spent: 120 },
-  { day: 'Day 2', spent: 80 },
-  { day: 'Day 3', spent: 250 },
-  { day: 'Day 4', spent: 90 },
-];
+const formatMoney = (amount: number, currency: string) =>
+  new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(amount || 0);
 
-const BudgetView = () => {
+const BudgetView = ({
+  tripId,
+  totalBudget,
+  currency,
+  items,
+  onChanged,
+}: {
+  tripId: string;
+  totalBudget: number;
+  currency: string;
+  items: BudgetItem[];
+  onChanged: () => Promise<void> | void;
+}) => {
+  const [form, setForm] = useState({ category: "", amount: "", date: "", description: "" });
+  const [saving, setSaving] = useState(false);
+
+  const totals = useMemo(() => {
+    const spent = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const byCategory = items.reduce<Record<string, number>>((acc, item) => {
+      acc[item.category] = (acc[item.category] || 0) + Number(item.amount || 0);
+      return acc;
+    }, {});
+
+    const byDay = items.reduce<Record<string, number>>((acc, item) => {
+      acc[item.date] = (acc[item.date] || 0) + Number(item.amount || 0);
+      return acc;
+    }, {});
+
+    return {
+      spent,
+      remaining: Number(totalBudget || 0) - spent,
+      categoryData: Object.entries(byCategory).map(([name, value], index) => ({
+        name,
+        value,
+        color: colors[index % colors.length],
+      })),
+      dayData: Object.entries(byDay).map(([day, spent]) => ({ day, spent })),
+    };
+  }, [items, totalBudget]);
+
+  const addItem = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!form.category || !form.amount || !form.date) return;
+
+    setSaving(true);
+    try {
+      await budgetAPI.addBudgetItem(tripId, {
+        category: form.category,
+        amount: Number(form.amount),
+        date: form.date,
+        description: form.description,
+      });
+      setForm({ category: "", amount: "", date: "", description: "" });
+      await onChanged();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteItem = async (itemId: string) => {
+    await budgetAPI.deleteBudgetItem(tripId, itemId);
+    await onChanged();
+  };
+
   return (
     <div className="space-y-8 py-4">
-      <div className="grid md:grid-cols-3 gap-6">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white/70 dark:bg-white/5 border border-gray-300/50 dark:border-white/10 p-6 rounded-2xl flex flex-col justify-center items-center">
-          <p className="text-gray-600 dark:text-white/60 text-sm">Total Budget</p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">$3,000</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="bg-white/70 dark:bg-white/5 border border-gray-300/50 dark:border-white/10 p-6 rounded-2xl flex flex-col justify-center items-center">
-          <p className="text-gray-600 dark:text-white/60 text-sm">Total Spent</p>
-          <p className="text-3xl font-bold text-red-600 dark:text-red-400">$2,700</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="bg-white/70 dark:bg-white/5 border border-gray-300/50 dark:border-white/10 p-6 rounded-2xl flex flex-col justify-center items-center">
-          <p className="text-gray-600 dark:text-white/60 text-sm">Remaining</p>
-          <p className="text-3xl font-bold text-green-600 dark:text-green-400">$300</p>
-        </motion.div>
+      <div className="grid gap-6 md:grid-cols-3">
+        {[
+          { label: "Total Budget", value: formatMoney(totalBudget, currency), tone: "text-slate-900 dark:text-white" },
+          { label: "Total Spent", value: formatMoney(totals.spent, currency), tone: "text-red-600 dark:text-red-400" },
+          { label: "Remaining", value: formatMoney(totals.remaining, currency), tone: "text-green-600 dark:text-green-400" },
+        ].map((item, index) => (
+          <motion.div
+            key={item.label}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: index * 0.08 }}
+            className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white/70 p-6 dark:border-white/10 dark:bg-white/5"
+          >
+            <p className="text-sm text-slate-500 dark:text-white/60">{item.label}</p>
+            <p className={`text-3xl font-black ${item.tone}`}>{item.value}</p>
+          </motion.div>
+        ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8 h-80">
-        <div className="bg-white/70 dark:bg-white/5 border border-gray-300/50 dark:border-white/10 p-6 rounded-2xl">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Expenses by Category</h3>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                key="pie"
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={90}
-                paddingAngle={5}
-                dataKey="value"
-                stroke="none"
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${entry.name}`} fill={entry.color} style={{ filter: 'drop-shadow(0px 4px 6px rgba(0,0,0,0.3))' }} />
-                ))}
-              </Pie>
-              <Tooltip 
-                key="tooltip"
-                contentStyle={{ backgroundColor: 'rgba(15,23,42,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
-                itemStyle={{ color: '#fff' }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+      <form onSubmit={addItem} className="grid gap-3 rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5 md:grid-cols-[1fr_120px_150px_1fr_auto]">
+        <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Category" className="rounded-xl border border-slate-200 bg-white/70 px-3 py-3 text-sm font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
+        <input type="number" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="Amount" className="rounded-xl border border-slate-200 bg-white/70 px-3 py-3 text-sm font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
+        <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="rounded-xl border border-slate-200 bg-white/70 px-3 py-3 text-sm font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:[color-scheme:dark]" />
+        <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description" className="rounded-xl border border-slate-200 bg-white/70 px-3 py-3 text-sm font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
+        <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white disabled:opacity-60">
+          <Plus className="h-4 w-4" />
+          Add
+        </button>
+      </form>
+
+      <div className="grid gap-8 lg:grid-cols-2">
+        <div className="h-80 rounded-2xl border border-slate-200 bg-white/70 p-6 dark:border-white/10 dark:bg-white/5">
+          <h3 className="mb-4 text-lg font-black text-slate-900 dark:text-white">Expenses by Category</h3>
+          {totals.categoryData.length === 0 ? (
+            <div className="flex h-56 items-center justify-center text-sm font-semibold text-slate-500 dark:text-white/50">No expenses yet</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={totals.categoryData} cx="50%" cy="50%" innerRadius={55} outerRadius={88} paddingAngle={5} dataKey="value" stroke="none">
+                  {totals.categoryData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
-        <div className="bg-white/70 dark:bg-white/5 border border-gray-300/50 dark:border-white/10 p-6 rounded-2xl">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Daily Spending</h3>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData}>
-              <CartesianGrid key="grid" strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-              <XAxis key="xaxis" dataKey="day" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)'}} />
-              <YAxis key="yaxis" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.7)'}} />
-              <Tooltip 
-                key="tooltip"
-                cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                contentStyle={{ backgroundColor: 'rgba(15,23,42,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }}
-              />
-              <Bar key="bar" dataKey="spent" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="h-80 rounded-2xl border border-slate-200 bg-white/70 p-6 dark:border-white/10 dark:bg-white/5">
+          <h3 className="mb-4 text-lg font-black text-slate-900 dark:text-white">Daily Spending</h3>
+          {totals.dayData.length === 0 ? (
+            <div className="flex h-56 items-center justify-center text-sm font-semibold text-slate-500 dark:text-white/50">No daily spending yet</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={totals.dayData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: "currentColor", fontSize: 11 }} />
+                <YAxis tick={{ fill: "currentColor", fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="spent" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
+      </div>
+
+      <div className="space-y-3">
+        {items.map((item) => (
+          <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+            <div>
+              <h4 className="font-black text-slate-900 dark:text-white">{item.category}</h4>
+              <p className="text-sm text-slate-500 dark:text-white/55">{item.description || item.date}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-black text-slate-900 dark:text-white">{formatMoney(item.amount, currency)}</span>
+              <button onClick={() => deleteItem(item.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

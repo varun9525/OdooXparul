@@ -208,3 +208,61 @@ export const deletePackingItemController = async (req: any, res: Response) => {
     sendError(res, 'Failed to delete packing item', 500);
   }
 };
+
+// Notes Controllers
+export const addNoteController = async (req: any, res: Response) => {
+  try {
+    const { tripId } = req.params;
+    const userId = req.userId;
+    const { title, content } = req.body;
+
+    const tripCheck = await db.query('SELECT id FROM trips WHERE id = $1 AND user_id = $2', [tripId, userId]);
+    if (tripCheck.rows.length === 0) {
+      return sendError(res, 'Trip not found', 404);
+    }
+
+    if (!title || !content) {
+      return sendError(res, 'Title and content are required', 400);
+    }
+
+    const noteId = uuidv4();
+    const result = await db.query(
+      'INSERT INTO trip_notes (id, trip_id, title, content) VALUES ($1, $2, $3, $4) RETURNING id, title, content, created_at',
+      [noteId, tripId, title, content]
+    );
+
+    const note = result.rows[0];
+    sendSuccess(res, {
+      id: note.id,
+      title: note.title,
+      content: note.content,
+      createdAt: note.created_at,
+    }, 201);
+  } catch (error) {
+    console.error('Add note error:', error);
+    sendError(res, 'Failed to add note', 500);
+  }
+};
+
+export const deleteNoteController = async (req: any, res: Response) => {
+  try {
+    const { tripId, noteId } = req.params;
+    const userId = req.userId;
+
+    const tripCheck = await db.query('SELECT id FROM trips WHERE id = $1 AND user_id = $2', [tripId, userId]);
+    if (tripCheck.rows.length === 0) {
+      return sendError(res, 'Trip not found', 404);
+    }
+
+    const result = await db.query('DELETE FROM trip_notes WHERE id = $1 AND trip_id = $2', [noteId, tripId]);
+
+    if (result.rowCount === 0) {
+      return sendError(res, 'Note not found', 404);
+    }
+
+    sendSuccess(res, { message: 'Note deleted' });
+  } catch (error) {
+    console.error('Delete note error:', error);
+    sendError(res, 'Failed to delete note', 500);
+  }
+};

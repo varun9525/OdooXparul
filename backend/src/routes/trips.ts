@@ -3,6 +3,7 @@ import {
   createTripController,
   getTripsController,
   getTripController,
+  getTripSummaryController,
   updateTripController,
   deleteTripController,
   validateCreateTrip,
@@ -15,6 +16,8 @@ import {
   addPackingItemController,
   updatePackingItemController,
   deletePackingItemController,
+  addNoteController,
+  deleteNoteController,
 } from '../controllers/tripDetails.js';
 
 const router = Router();
@@ -22,6 +25,7 @@ const router = Router();
 // Trip routes
 router.post('/', validateCreateTrip, createTripController);
 router.get('/', getTripsController);
+router.get('/stats/summary', getTripSummaryController);
 router.get('/:tripId', getTripController);
 router.put('/:tripId', updateTripController);
 router.delete('/:tripId', deleteTripController);
@@ -38,5 +42,9 @@ router.delete('/:tripId/itinerary/:itemId', deleteItineraryItemController);
 router.post('/:tripId/packing', addPackingItemController);
 router.put('/:tripId/packing/:itemId', updatePackingItemController);
 router.delete('/:tripId/packing/:itemId', deletePackingItemController);
+
+// Notes routes
+router.post('/:tripId/notes', addNoteController);
+router.delete('/:tripId/notes/:noteId', deleteNoteController);
 
 export default router;

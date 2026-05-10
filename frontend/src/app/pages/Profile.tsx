@@ -1,63 +1,144 @@
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Edit3 } from "lucide-react";
+import { Edit3, Loader2, Save, X } from "lucide-react";
+import { useNavigate } from "react-router";
+import { tripAPI, Trip } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
 const Profile = () => {
+  const navigate = useNavigate();
+  const { user, updateProfile } = useAuth();
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
+    bio: user?.bio || "",
+    avatarUrl: user?.avatarUrl || "",
+  });
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const response = await tripAPI.getTrips();
+        setTrips(response.data);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+    setForm({
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      bio: user?.bio || "",
+      avatarUrl: user?.avatarUrl || "",
+    });
+  }, [user]);
+
+  const stats = useMemo(() => {
+    return {
+      trips: trips.length,
+      destinations: new Set(trips.map((trip) => trip.destination.toLowerCase())).size,
+      budget: trips.reduce((sum, trip) => sum + Number(trip.totalBudget || 0), 0),
+    };
+  }, [trips]);
+
+  const saveProfile = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await updateProfile(form.firstName, form.lastName, form.bio, form.avatarUrl);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const displayName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || user?.username || "Traveler";
+
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="max-w-4xl mx-auto space-y-8 py-4 pb-12"
-    >
-      <div className="bg-white/80 dark:bg-white/10 backdrop-blur-2xl border border-slate-200 dark:border-white/20 p-8 md:p-12 rounded-3xl shadow-xl flex flex-col md:flex-row gap-8 items-center md:items-start relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-        
-        <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-indigo-100 dark:border-indigo-500/50 flex-shrink-0 shadow-2xl relative z-10">
-          <img src="https://images.unsplash.com/photo-1664871475935-39a9b861514f?q=80&w=400" alt="Profile" className="w-full h-full object-cover" />
-        </div>
-        <div className="flex-1 text-center md:text-left relative z-10">
-          <h1 className="text-4xl font-black text-slate-800 dark:text-white mb-2">Alex Traveler</h1>
-          <p className="text-slate-500 dark:text-white/60 mb-8 font-medium text-lg">alex.travels@example.com • +1 234 567 890</p>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 p-5 rounded-2xl text-center shadow-sm">
-              <h4 className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mb-1">12</h4>
-              <p className="text-xs text-slate-500 dark:text-white/60 font-bold uppercase tracking-widest">Trips</p>
-            </div>
-            <div className="bg-white dark:bg-white/5 border border-slate-100 dark:border-white/10 p-5 rounded-2xl text-center shadow-sm">
-              <h4 className="text-3xl font-black text-purple-600 dark:text-purple-400 mb-1">8</h4>
-              <p className="text-xs text-slate-500 dark:text-white/60 font-bold uppercase tracking-widest">Countries</p>
-            </div>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-5xl space-y-8 py-4 pb-12">
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white/80 p-8 shadow-xl backdrop-blur-2xl dark:border-white/20 dark:bg-white/10 md:p-12">
+        <div className="flex flex-col gap-8 md:flex-row md:items-start">
+          <div className="relative z-10 h-32 w-32 flex-shrink-0 overflow-hidden rounded-full border-4 border-indigo-100 shadow-2xl dark:border-indigo-500/50 md:h-40 md:w-40">
+            <img
+              src={user?.avatarUrl || "https://images.unsplash.com/photo-1664871475935-39a9b861514f?q=80&w=400"}
+              alt={displayName}
+              className="h-full w-full object-cover"
+            />
+          </div>
+
+          <div className="relative z-10 flex-1">
+            {!editing ? (
+              <>
+                <h1 className="mb-2 text-4xl font-black text-slate-800 dark:text-white">{displayName}</h1>
+                <p className="mb-3 text-lg font-medium text-slate-500 dark:text-white/60">{user?.email}</p>
+                <p className="mb-8 max-w-2xl text-slate-600 dark:text-white/60">{user?.bio || "No bio added yet."}</p>
+                <button onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-5 py-3 font-bold text-indigo-700 transition hover:bg-indigo-100 dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20">
+                  <Edit3 className="h-4 w-4" />
+                  Edit Profile
+                </button>
+              </>
+            ) : (
+              <form onSubmit={saveProfile} className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="First name" className="rounded-xl border border-slate-200 bg-white/80 px-4 py-3 font-semibold dark:border-white/10 dark:bg-white/5 dark:text-white" />
+                  <input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Last name" className="rounded-xl border border-slate-200 bg-white/80 px-4 py-3 font-semibold dark:border-white/10 dark:bg-white/5 dark:text-white" />
+                </div>
+                <input value={form.avatarUrl} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} placeholder="Avatar URL" className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 font-semibold dark:border-white/10 dark:bg-white/5 dark:text-white" />
+                <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Bio" rows={4} className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 font-semibold dark:border-white/10 dark:bg-white/5 dark:text-white" />
+                <div className="flex gap-3">
+                  <button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white disabled:opacity-60">
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Save
+                  </button>
+                  <button type="button" onClick={() => setEditing(false)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-5 py-3 font-bold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white">
+                    <X className="h-4 w-4" />
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
-        <button className="md:absolute top-8 right-8 bg-indigo-50 dark:bg-white/10 border border-indigo-100 dark:border-white/20 px-6 py-3 rounded-xl text-indigo-700 dark:text-white hover:bg-indigo-100 dark:hover:bg-white/20 transition-all font-bold flex items-center gap-2 shadow-sm">
-          <Edit3 className="w-4 h-4" /> Edit Profile
-        </button>
+
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          {[
+            ["Trips", stats.trips],
+            ["Destinations", stats.destinations],
+            ["Planned Budget", stats.budget],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-2xl border border-slate-100 bg-white p-5 text-center shadow-sm dark:border-white/10 dark:bg-white/5">
+              <h4 className="mb-1 text-3xl font-black text-indigo-600 dark:text-indigo-400">{value}</h4>
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-white/60">{label}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6">Preplanned Trips</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { title: "Mountain Retreat", img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=400" },
-            { title: "Coastal Drive", img: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?q=80&w=400" },
-            { title: "Desert Safari", img: "https://images.unsplash.com/photo-1547234935-80c7145ec969?q=80&w=400" }
-          ].map((trip, i) => (
-            <motion.div 
-              key={i} 
-              whileHover={{ y: -5 }}
-              className="h-56 bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 flex flex-col justify-end relative overflow-hidden group cursor-pointer shadow-lg"
-            >
-              <img src={trip.img} alt={trip.title} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-80 transition-all duration-700" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80" />
-              <div className="relative z-10 translate-y-4 group-hover:translate-y-0 transition-transform">
-                <h4 className="text-xl font-bold text-white mb-2">{trip.title}</h4>
-                <button className="text-sm bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-white font-semibold hover:bg-white/30 transition-colors opacity-0 group-hover:opacity-100">
-                  View Details
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        <h2 className="mb-6 text-2xl font-black text-slate-800 dark:text-white">Your Trips</h2>
+        {loading ? (
+          <Loader2 className="h-7 w-7 animate-spin text-indigo-600" />
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {trips.map((trip) => (
+              <motion.button key={trip.id} whileHover={{ y: -5 }} onClick={() => navigate(`/trips/${trip.id}`)} className="group relative flex h-56 flex-col justify-end overflow-hidden rounded-3xl border border-slate-200 bg-slate-900 p-6 text-left shadow-lg dark:border-white/10">
+                <img src={trip.imageUrl || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800"} alt={trip.title} className="absolute inset-0 h-full w-full object-cover opacity-60 transition-all duration-700 group-hover:scale-110 group-hover:opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                <div className="relative z-10">
+                  <h4 className="mb-1 text-xl font-black text-white">{trip.title}</h4>
+                  <p className="text-sm font-semibold text-white/70">{trip.destination}</p>
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        )}
       </div>
     </motion.div>
   );

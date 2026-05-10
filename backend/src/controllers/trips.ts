@@ -4,6 +4,55 @@ import { v4 as uuidv4 } from 'uuid';
 import db from '../config/database.js';
 import { sendError, sendSuccess } from '../utils/helpers.js';
 
+export const getTripSummaryController = async (req: any, res: Response) => {
+  try {
+    const userId = req.userId;
+
+    const tripsResult = await db.query(
+      'SELECT id, title, destination, start_date, end_date, status, total_budget, currency FROM trips WHERE user_id = $1',
+      [userId]
+    );
+    const budgetResult = await db.query(
+      'SELECT bi.amount, bi.category FROM budget_items bi INNER JOIN trips t ON t.id = bi.trip_id WHERE t.user_id = $1',
+      [userId]
+    );
+
+    const trips = tripsResult.rows;
+    const destinations = new Set(trips.map((trip: any) => String(trip.destination || '').toLowerCase()).filter(Boolean));
+    const totalBudget = trips.reduce((sum: number, trip: any) => sum + Number(trip.total_budget || 0), 0);
+    const totalSpent = budgetResult.rows.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+
+    const categoryTotals = budgetResult.rows.reduce((acc: Record<string, number>, item: any) => {
+      acc[item.category] = (acc[item.category] || 0) + Number(item.amount || 0);
+      return acc;
+    }, {});
+
+    sendSuccess(res, {
+      trips: trips.length,
+      destinations: destinations.size,
+      totalBudget,
+      totalSpent,
+      currency: trips[0]?.currency || 'USD',
+      upcoming: trips.filter((trip: any) => new Date(trip.start_date) > new Date()).length,
+      active: trips.filter((trip: any) => new Date(trip.start_date) <= new Date() && new Date(trip.end_date) >= new Date()).length,
+      past: trips.filter((trip: any) => new Date(trip.end_date) < new Date()).length,
+      categoryTotals: Object.entries(categoryTotals).map(([name, value]) => ({ name, value })),
+      recentTrips: trips.slice(0, 5).map((trip: any) => ({
+        id: trip.id,
+        title: trip.title,
+        destination: trip.destination,
+        startDate: trip.start_date,
+        endDate: trip.end_date,
+        status: trip.status,
+        totalBudget: Number(trip.total_budget || 0),
+      })),
+    });
+  } catch (error) {
+    console.error('Get trip summary error:', error);
+    sendError(res, 'Failed to get trip summary', 500);
+  }
+};
+
 export const createTripController = async (req: any, res: Response) => {
   try {
     const errors = validationResult(req);
@@ -113,6 +162,12 @@ export const getTripController = async (req: any, res: Response) => {
       [tripId]
     );
 
+    // Get notes
+    const notesResult = await db.query(
+      'SELECT id, title, content, created_at FROM trip_notes WHERE trip_id = $1 ORDER BY created_at DESC',
+      [tripId]
+    );
+
     sendSuccess(res, {
       id: trip.id,
       title: trip.title,
@@ -149,6 +204,12 @@ export const getTripController = async (req: any, res: Response) => {
         name: item.name,
         packed: item.packed,
         category: item.category,
+      })),
+      notes: notesResult.rows.map((note: any) => ({
+        id: note.id,
+        title: note.title,
+        content: note.content,
+        createdAt: note.created_at,
       })),
       createdAt: trip.created_at,
     });

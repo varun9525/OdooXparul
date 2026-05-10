@@ -59,55 +59,22 @@ async function query(text: string, params?: any[]): Promise<QueryResult> {
   if (!sqliteDb) throw new Error('SQLite DB not initialized');
 
   let sql = convertSqliteQuery(text);
+  const sqliteParams = params?.map((param) => typeof param === 'boolean' ? (param ? 1 : 0) : param);
   const trimmed = sql.trim().toLowerCase();
 
-  // Handle RETURNING clause for SQLite (not natively supported)
+  // Modern SQLite supports RETURNING. Run those statements as row-returning
+  // queries so API controllers get the same shape as PostgreSQL.
   const hasReturning = /\s+RETURNING\s+/i.test(sql);
-  let baseSql = sql;
-  let returningCols: string[] = [];
 
-  if (hasReturning) {
-    const match = sql.match(/(.+?)\s+RETURNING\s+(.+?)(?:;|$)/i);
-    if (match) {
-      baseSql = match[1];
-      returningCols = match[2].split(',').map(col => col.trim()).filter(col => col);
-    }
-  }
-
-  if (trimmed.startsWith('select')) {
+  if (trimmed.startsWith('select') || hasReturning) {
     const stmt = sqliteDb.prepare(sql);
-    const rows = params && params.length ? stmt.all(...params) : stmt.all();
+    const rows = sqliteParams && sqliteParams.length ? stmt.all(...sqliteParams) : stmt.all();
     return { rows, rowCount: rows.length };
   }
 
   // For INSERT/UPDATE/DELETE
-  const stmt = sqliteDb.prepare(baseSql);
-  const info = params && params.length ? stmt.run(...params) : stmt.run();
-
-  // If there was a RETURNING clause and it's an INSERT, fetch the inserted row
-  if (hasReturning && info.changes > 0) {
-    try {
-      // Try to determine the table and ID from the query
-      const insertMatch = baseSql.match(/INSERT\s+INTO\s+(\w+)\s*\(/i);
-      const updateMatch = baseSql.match(/UPDATE\s+(\w+)/i);
-      
-      let tableName = insertMatch?.[1] || updateMatch?.[1];
-      if (!tableName) return { rows: [], rowCount: info.changes };
-
-      // Get the ID from parameters (usually first param for INSERT, last for UPDATE/DELETE)
-      const idParam = params?.[0];
-      if (idParam) {
-        const cols = returningCols.join(', ') || '*';
-        const selectSql = `SELECT ${cols} FROM ${tableName} WHERE id = ?`;
-        const selectStmt = sqliteDb.prepare(selectSql);
-        const rows = selectStmt.all(idParam);
-        return { rows, rowCount: info.changes };
-      }
-    } catch (e) {
-      // If fetch fails, still return success with no rows
-    }
-  }
-
+  const stmt = sqliteDb.prepare(sql);
+  const info = sqliteParams && sqliteParams.length ? stmt.run(...sqliteParams) : stmt.run();
   return { rows: [], rowCount: info.changes };
 }
 

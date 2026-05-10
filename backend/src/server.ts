@@ -6,6 +6,8 @@ import { initializeDatabase } from './config/initDb.js';
 import db from './config/database.js';
 import authRoutes from './routes/auth.js';
 import tripRoutes from './routes/trips.js';
+import communityRoutes from './routes/community.js';
+import publicRoutes from './routes/public.js';
 
 dotenv.config();
 
@@ -21,9 +23,11 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/public', publicRoutes);
 
 // Protected routes
 app.use('/api/trips', authMiddleware, tripRoutes);
+app.use('/api/community', authMiddleware, communityRoutes);
 
 // Health check
 app.get('/api/health', (_req, res: Response) => {

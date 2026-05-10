@@ -1,64 +1,109 @@
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Search as SearchIcon, MapPin, Star } from "lucide-react";
+import { Loader2, MapPin, Search as SearchIcon, Star } from "lucide-react";
+import { useNavigate } from "react-router";
+import { communityAPI, CommunityPost, tripAPI, Trip } from "../../services/api";
 
 const SearchPage = () => {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [tripResponse, postResponse] = await Promise.all([tripAPI.getTrips(), communityAPI.getPosts()]);
+        setTrips(tripResponse.data);
+        setPosts(postResponse.data);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const results = useMemo(() => {
+    const term = query.toLowerCase();
+    const tripResults = trips.map((trip) => ({
+      id: trip.id,
+      type: "Trip",
+      title: trip.title,
+      subtitle: trip.destination,
+      body: trip.description || "Saved trip from your workspace.",
+      image: trip.imageUrl || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=800",
+      onClick: () => navigate(`/trips/${trip.id}`),
+    }));
+    const postResults = posts.map((post) => ({
+      id: post.id,
+      type: "Community",
+      title: post.title,
+      subtitle: post.destination || post.author?.username || "Community",
+      body: post.content,
+      image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=800",
+      onClick: () => navigate("/community"),
+    }));
+
+    return [...tripResults, ...postResults].filter((item) => {
+      const matchesFilter = filter === "All" || item.type === filter;
+      const matchesQuery = `${item.title} ${item.subtitle} ${item.body}`.toLowerCase().includes(term);
+      return matchesFilter && matchesQuery;
+    });
+  }, [filter, navigate, posts, query, trips]);
+
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="max-w-4xl mx-auto space-y-8 py-4 pb-12"
-    >
-      <div className="relative group">
-        <SearchIcon className="absolute left-6 top-1/2 -translate-y-1/2 text-indigo-400 dark:text-white/50 w-6 h-6 group-focus-within:text-indigo-600 transition-colors" />
-        <input 
-          type="text" 
-          placeholder="Search destinations, activities, or cities..." 
-          className="w-full bg-white dark:bg-white/10 backdrop-blur-xl border border-slate-200 dark:border-white/20 rounded-full pl-16 pr-6 py-5 text-lg text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl transition-all font-medium"
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-4xl space-y-8 py-4 pb-12">
+      <div className="group relative">
+        <SearchIcon className="absolute left-6 top-1/2 h-6 w-6 -translate-y-1/2 text-indigo-400 transition-colors group-focus-within:text-indigo-600 dark:text-white/50" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          type="text"
+          placeholder="Search your trips and community posts..."
+          className="w-full rounded-full border border-slate-200 bg-white py-5 pl-16 pr-6 text-lg font-medium text-slate-800 shadow-xl outline-none backdrop-blur-xl transition-all placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 dark:border-white/20 dark:bg-white/10 dark:text-white dark:placeholder-white/50"
         />
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar px-1">
-        {['All', 'Cities', 'Activities', 'Hotels', 'Restaurants'].map((tag, i) => (
-          <button key={tag} className={`px-6 py-2.5 rounded-full border whitespace-nowrap transition-all font-bold ${i === 0 ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20' : 'bg-white/80 dark:bg-white/5 text-slate-600 dark:text-white/70 border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 shadow-sm'}`}>
+      <div className="flex gap-4 overflow-x-auto px-1 pb-2">
+        {["All", "Trip", "Community"].map((tag) => (
+          <button key={tag} onClick={() => setFilter(tag)} className={`whitespace-nowrap rounded-full border px-6 py-2.5 font-bold transition-all ${filter === tag ? "border-indigo-600 bg-indigo-600 text-white shadow-md shadow-indigo-500/20" : "border-slate-200 bg-white/80 text-slate-600 shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10"}`}>
             {tag}
           </button>
         ))}
       </div>
 
-      <div className="space-y-4">
-        {[
-          { title: "Shinjuku Gyoen National Garden", img: "https://images.unsplash.com/photo-1542051812871-34f215d5fd23?q=80&w=400", tags: ["Park", "Sightseeing"], rating: 4.8 },
-          { title: "Eiffel Tower Sunset Tour", img: "https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?q=80&w=400", tags: ["Landmark", "Romantic"], rating: 4.9 },
-          { title: "Colosseum Underground", img: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=400", tags: ["History", "Tour"], rating: 4.7 }
-        ].map((item, i) => (
-          <motion.div 
-            key={i} 
-            whileHover={{ scale: 1.01 }}
-            className="bg-white/80 dark:bg-white/5 backdrop-blur-md border border-slate-200 dark:border-white/10 p-4 rounded-3xl flex flex-col md:flex-row gap-6 hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer shadow-lg"
-          >
-            <div className="w-full md:w-56 h-40 rounded-2xl overflow-hidden flex-shrink-0 relative group">
-              <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-            </div>
-            <div className="flex-1 flex flex-col justify-center py-2">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-white">{item.title}</h3>
-                <div className="flex items-center gap-1 text-amber-500 dark:text-amber-400 text-sm bg-amber-50 dark:bg-white/10 px-3 py-1.5 rounded-lg font-bold border border-amber-100 dark:border-transparent">
-                  <Star className="w-4 h-4 fill-current" /> {item.rating}
+      {loading ? (
+        <div className="flex min-h-[220px] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {results.map((item) => (
+            <motion.button key={`${item.type}-${item.id}`} whileHover={{ scale: 1.01 }} onClick={item.onClick} className="flex w-full flex-col gap-6 rounded-3xl border border-slate-200 bg-white/80 p-4 text-left shadow-lg backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 md:flex-row">
+              <div className="relative h-40 w-full flex-shrink-0 overflow-hidden rounded-2xl md:w-56">
+                <img src={item.image} alt={item.title} className="h-full w-full object-cover transition-transform duration-500 hover:scale-110" />
+              </div>
+              <div className="flex flex-1 flex-col justify-center py-2">
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <h3 className="text-2xl font-black text-slate-800 dark:text-white">{item.title}</h3>
+                  <div className="flex items-center gap-1 rounded-lg border border-amber-100 bg-amber-50 px-3 py-1.5 text-sm font-bold text-amber-500 dark:border-transparent dark:bg-white/10 dark:text-amber-400">
+                    <Star className="h-4 w-4 fill-current" />
+                    {item.type}
+                  </div>
                 </div>
+                <p className="mb-3 flex items-center gap-1 text-sm font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-300">
+                  <MapPin className="h-4 w-4" />
+                  {item.subtitle}
+                </p>
+                <p className="line-clamp-2 text-base leading-relaxed text-slate-500 dark:text-white/60">{item.body}</p>
               </div>
-              <p className="text-slate-500 dark:text-white/60 text-base mb-4 leading-relaxed">Experience an unforgettable journey through one of the most iconic locations in the world. Perfect for photography and sightseeing.</p>
-              <div className="flex gap-2 mt-auto">
-                {item.tags.map(tag => (
-                  <span key={tag} className="text-xs bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-500/20 font-bold tracking-wide uppercase">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.button>
+          ))}
+          {results.length === 0 && <div className="rounded-3xl border border-dashed border-slate-300 p-10 text-center font-semibold text-slate-500 dark:border-white/15 dark:text-white/50">No results found.</div>}
+        </div>
+      )}
     </motion.div>
   );
 };

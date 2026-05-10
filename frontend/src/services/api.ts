@@ -55,6 +55,7 @@ export interface Trip {
     packed: boolean;
     category?: string;
   }>;
+  notes?: TripNote[];
   createdAt: string;
 }
 
@@ -82,6 +83,68 @@ export interface PackingItem {
   packed: boolean;
   category?: string;
 }
+
+export interface TripNote {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface CommunityPost {
+  id: string;
+  title: string;
+  content: string;
+  destination?: string;
+  likesCount: number;
+  createdAt: string;
+  author?: {
+    username: string;
+    firstName?: string;
+    lastName?: string;
+    avatarUrl?: string;
+  };
+}
+
+const normalizeUser = (user: any): User => ({
+  id: user.id,
+  email: user.email,
+  username: user.username,
+  firstName: user.firstName ?? user.first_name ?? '',
+  lastName: user.lastName ?? user.last_name ?? '',
+  bio: user.bio,
+  avatarUrl: user.avatarUrl ?? user.avatar_url,
+});
+
+const normalizeTrip = (trip: any): Trip => ({
+  id: trip.id,
+  title: trip.title,
+  destination: trip.destination,
+  startDate: trip.startDate ?? trip.start_date,
+  endDate: trip.endDate ?? trip.end_date,
+  description: trip.description ?? '',
+  imageUrl: trip.imageUrl ?? trip.image_url,
+  status: trip.status ?? 'upcoming',
+  totalBudget: Number(trip.totalBudget ?? trip.total_budget ?? trip.budget?.total ?? 0),
+  currency: trip.currency ?? trip.budget?.currency ?? 'USD',
+  budget: trip.budget
+    ? {
+        total: Number(trip.budget.total ?? 0),
+        currency: trip.budget.currency ?? trip.currency ?? 'USD',
+        items: (trip.budget.items ?? []).map((item: any) => ({
+          ...item,
+          amount: Number(item.amount ?? 0),
+        })),
+      }
+    : undefined,
+  itinerary: trip.itinerary,
+  packingList: trip.packingList?.map((item: any) => ({
+    ...item,
+    packed: Boolean(item.packed),
+  })),
+  notes: trip.notes,
+  createdAt: trip.createdAt ?? trip.created_at,
+});
 
 // Helper function to get auth token
 const getToken = (): string | null => {
@@ -124,7 +187,14 @@ export const authAPI = {
       throw new Error(error.message || 'Registration failed');
     }
 
-    return response.json();
+    const payload = await response.json();
+    return {
+      ...payload,
+      data: {
+        ...payload.data,
+        user: normalizeUser(payload.data.user),
+      },
+    };
   },
 
   login: async (email: string, password: string): Promise<AuthResponse> => {
@@ -139,7 +209,14 @@ export const authAPI = {
       throw new Error(error.message || 'Login failed');
     }
 
-    return response.json();
+    const payload = await response.json();
+    return {
+      ...payload,
+      data: {
+        ...payload.data,
+        user: normalizeUser(payload.data.user),
+      },
+    };
   },
 
   getProfile: async (): Promise<{ success: boolean; data: User }> => {
@@ -151,7 +228,11 @@ export const authAPI = {
       throw new Error('Failed to fetch profile');
     }
 
-    return response.json();
+    const payload = await response.json();
+    return {
+      ...payload,
+      data: normalizeUser(payload.data),
+    };
   },
 
   updateProfile: async (firstName: string, lastName: string, bio?: string, avatarUrl?: string): Promise<{ success: boolean; data: User }> => {
@@ -165,7 +246,11 @@ export const authAPI = {
       throw new Error('Failed to update profile');
     }
 
-    return response.json();
+    const payload = await response.json();
+    return {
+      ...payload,
+      data: normalizeUser(payload.data),
+    };
   },
 };
 
@@ -191,7 +276,11 @@ export const tripAPI = {
       throw new Error('Failed to create trip');
     }
 
-    return response.json();
+    const payload = await response.json();
+    return {
+      ...payload,
+      data: normalizeTrip(payload.data),
+    };
   },
 
   getTrips: async (status?: string): Promise<{ success: boolean; data: Trip[] }> => {
@@ -208,7 +297,11 @@ export const tripAPI = {
       throw new Error('Failed to fetch trips');
     }
 
-    return response.json();
+    const payload = await response.json();
+    return {
+      ...payload,
+      data: (payload.data ?? []).map(normalizeTrip),
+    };
   },
 
   getTripById: async (tripId: string): Promise<{ success: boolean; data: Trip }> => {
@@ -220,7 +313,11 @@ export const tripAPI = {
       throw new Error('Failed to fetch trip');
     }
 
-    return response.json();
+    const payload = await response.json();
+    return {
+      ...payload,
+      data: normalizeTrip(payload.data),
+    };
   },
 
   updateTrip: async (tripId: string, tripData: Partial<Trip>): Promise<{ success: boolean; data: Trip }> => {
@@ -234,7 +331,11 @@ export const tripAPI = {
       throw new Error('Failed to update trip');
     }
 
-    return response.json();
+    const payload = await response.json();
+    return {
+      ...payload,
+      data: normalizeTrip(payload.data),
+    };
   },
 
   deleteTrip: async (tripId: string): Promise<{ success: boolean }> => {
@@ -364,6 +465,110 @@ export const packingAPI = {
 
     if (!response.ok) {
       throw new Error('Failed to delete packing item');
+    }
+
+    return response.json();
+  },
+};
+
+// Notes APIs
+export const notesAPI = {
+  addNote: async (tripId: string, noteData: {
+    title: string;
+    content: string;
+  }): Promise<{ success: boolean; data: TripNote }> => {
+    const response = await fetch(`${API_BASE_URL}/trips/${tripId}/notes`, {
+      method: 'POST',
+      headers: getHeaders(true),
+      body: JSON.stringify(noteData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to add note');
+    }
+
+    return response.json();
+  },
+
+  deleteNote: async (tripId: string, noteId: string): Promise<{ success: boolean }> => {
+    const response = await fetch(`${API_BASE_URL}/trips/${tripId}/notes/${noteId}`, {
+      method: 'DELETE',
+      headers: getHeaders(true),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete note');
+    }
+
+    return response.json();
+  },
+
+  getSummary: async (): Promise<{ success: boolean; data: any }> => {
+    const response = await fetch(`${API_BASE_URL}/trips/stats/summary`, {
+      headers: getHeaders(true),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch trip summary');
+    }
+
+    return response.json();
+  },
+};
+
+export const publicAPI = {
+  getSharedTrip: async (tripId: string): Promise<{ success: boolean; data: Trip }> => {
+    const response = await fetch(`${API_BASE_URL}/public/trips/${tripId}`, {
+      headers: getHeaders(false),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch shared trip');
+    }
+
+    const payload = await response.json();
+    return {
+      ...payload,
+      data: normalizeTrip(payload.data),
+    };
+  },
+};
+
+export const communityAPI = {
+  getPosts: async (): Promise<{ success: boolean; data: CommunityPost[] }> => {
+    const response = await fetch(`${API_BASE_URL}/community`, {
+      headers: getHeaders(true),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch community posts');
+    }
+
+    return response.json();
+  },
+
+  createPost: async (post: { title: string; content: string; destination?: string }): Promise<{ success: boolean; data: CommunityPost }> => {
+    const response = await fetch(`${API_BASE_URL}/community`, {
+      method: 'POST',
+      headers: getHeaders(true),
+      body: JSON.stringify(post),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create community post');
+    }
+
+    return response.json();
+  },
+
+  likePost: async (postId: string): Promise<{ success: boolean; data: { id: string; likesCount: number } }> => {
+    const response = await fetch(`${API_BASE_URL}/community/${postId}/like`, {
+      method: 'POST',
+      headers: getHeaders(true),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to like post');
     }
 
     return response.json();

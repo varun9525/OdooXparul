@@ -80,6 +80,18 @@ export async function initializeDatabase() {
       );
     `);
 
+    // Trip notes table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS trip_notes (
+        id TEXT PRIMARY KEY,
+        trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Community posts table
     await db.query(`
       CREATE TABLE IF NOT EXISTS community_posts (
