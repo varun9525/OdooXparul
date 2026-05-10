@@ -14,28 +14,54 @@ export const getTripSummaryController = async (req: any, res: Response) => {
 
     let tripsResult;
     let budgetResult;
+    let usersResult = { rows: [] as any[] };
+    let userStatsResult = { rows: [] as any[] };
+    let tripSpendResult;
 
     if (isAdmin) {
       // Global data for admin
       tripsResult = await db.query(
-        'SELECT id, title, destination, start_date, end_date, status, total_budget, currency FROM trips'
+        'SELECT id, user_id, title, destination, start_date, end_date, status, total_budget, currency FROM trips'
       );
       budgetResult = await db.query(
         'SELECT amount, category FROM budget_items'
       );
+      usersResult = await db.query(
+        'SELECT id, email, username, first_name, last_name, created_at FROM users ORDER BY created_at DESC'
+      );
+      userStatsResult = await db.query(
+        `SELECT
+           u.id AS user_id,
+           COALESCE((SELECT COUNT(*) FROM trips t WHERE t.user_id = u.id), 0) AS trip_count,
+           COALESCE((SELECT SUM(t.total_budget) FROM trips t WHERE t.user_id = u.id), 0) AS total_budget,
+           COALESCE((SELECT SUM(bi.amount) FROM budget_items bi INNER JOIN trips t ON t.id = bi.trip_id WHERE t.user_id = u.id), 0) AS total_spent,
+           (SELECT MAX(t.end_date) FROM trips t WHERE t.user_id = u.id) AS last_trip_end_date
+         FROM users u`
+      );
+      tripSpendResult = await db.query(
+        'SELECT trip_id, SUM(amount) AS spent FROM budget_items GROUP BY trip_id'
+      );
     } else {
       // User-specific data
       tripsResult = await db.query(
-        'SELECT id, title, destination, start_date, end_date, status, total_budget, currency FROM trips WHERE user_id = $1',
+        'SELECT id, user_id, title, destination, start_date, end_date, status, total_budget, currency FROM trips WHERE user_id = $1',
         [userId]
       );
       budgetResult = await db.query(
         'SELECT bi.amount, bi.category FROM budget_items bi INNER JOIN trips t ON t.id = bi.trip_id WHERE t.user_id = $1',
         [userId]
       );
+      tripSpendResult = await db.query(
+        'SELECT bi.trip_id, SUM(bi.amount) AS spent FROM budget_items bi INNER JOIN trips t ON t.id = bi.trip_id WHERE t.user_id = $1 GROUP BY bi.trip_id',
+        [userId]
+      );
     }
 
     const trips = tripsResult.rows;
+    const tripSpendMap = (tripSpendResult.rows || []).reduce((acc: Record<string, number>, row: any) => {
+      acc[row.trip_id] = Number(row.spent || 0);
+      return acc;
+    }, {});
     const destinations = new Set(trips.map((trip: any) => String(trip.destination || '').toLowerCase()).filter(Boolean));
     const totalBudget = trips.reduce((sum: number, trip: any) => sum + Number(trip.total_budget || 0), 0);
     const totalSpent = budgetResult.rows.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
@@ -44,6 +70,81 @@ export const getTripSummaryController = async (req: any, res: Response) => {
       acc[item.category] = (acc[item.category] || 0) + Number(item.amount || 0);
       return acc;
     }, {});
+
+    const now = new Date();
+    const ongoingTrips = trips
+      .filter((trip: any) => {
+        const start = new Date(trip.start_date);
+        const end = new Date(trip.end_date);
+        return trip.status === 'active' || (start <= now && end >= now);
+      })
+      .slice(0, 6)
+      .map((trip: any) => {
+        const spent = Number(tripSpendMap[trip.id] || 0);
+        const budget = Number(trip.total_budget || 0);
+        return {
+          id: trip.id,
+          userId: trip.user_id,
+          title: trip.title,
+          destination: trip.destination,
+          startDate: trip.start_date,
+          endDate: trip.end_date,
+          status: trip.status,
+          totalBudget: budget,
+          totalSpent: spent,
+          utilization: budget > 0 ? Math.round((spent / budget) * 100) : 0,
+          currency: trip.currency || 'USD',
+        };
+      });
+
+    const tripAnalysis = trips
+      .map((trip: any) => {
+        const spent = Number(tripSpendMap[trip.id] || 0);
+        const budget = Number(trip.total_budget || 0);
+        return {
+          id: trip.id,
+          userId: trip.user_id,
+          title: trip.title,
+          destination: trip.destination,
+          status: trip.status,
+          startDate: trip.start_date,
+          endDate: trip.end_date,
+          totalBudget: budget,
+          totalSpent: spent,
+          utilization: budget > 0 ? Math.round((spent / budget) * 100) : 0,
+          currency: trip.currency || 'USD',
+        };
+      })
+      .sort((a: any, b: any) => (a.startDate < b.startDate ? 1 : -1));
+
+    const userStatsMap = userStatsResult.rows.reduce((acc: Record<string, any>, row: any) => {
+      acc[row.user_id] = {
+        tripCount: Number(row.trip_count || 0),
+        totalBudget: Number(row.total_budget || 0),
+        totalSpent: Number(row.total_spent || 0),
+        lastTripEndDate: row.last_trip_end_date,
+      };
+      return acc;
+    }, {});
+
+    const users = usersResult.rows.map((user: any) => {
+      const stats = userStatsMap[user.id] || { tripCount: 0, totalBudget: 0, totalSpent: 0, lastTripEndDate: null };
+      return {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        createdAt: user.created_at,
+        tripCount: stats.tripCount,
+        totalBudget: stats.totalBudget,
+        totalSpent: stats.totalSpent,
+        lastTripEndDate: stats.lastTripEndDate,
+      };
+    });
+
+    const usersWithTrips = users.filter((user: any) => user.tripCount > 0).length;
+    const usersWithoutTrips = users.filter((user: any) => user.tripCount === 0).length;
 
     sendSuccess(res, {
       trips: trips.length,
@@ -57,13 +158,21 @@ export const getTripSummaryController = async (req: any, res: Response) => {
       categoryTotals: Object.entries(categoryTotals).map(([name, value]) => ({ name, value })),
       recentTrips: trips.slice(0, 5).map((trip: any) => ({
         id: trip.id,
+        userId: trip.user_id,
         title: trip.title,
         destination: trip.destination,
         startDate: trip.start_date,
         endDate: trip.end_date,
         status: trip.status,
         totalBudget: Number(trip.total_budget || 0),
+        totalSpent: Number(tripSpendMap[trip.id] || 0),
       })),
+      totalUsers: users.length,
+      usersWithTrips,
+      usersWithoutTrips,
+      users,
+      ongoingTrips,
+      tripAnalysis,
     });
   } catch (error) {
     console.error('Get trip summary error:', error);
