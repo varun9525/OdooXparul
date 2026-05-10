@@ -150,7 +150,31 @@ const ChecklistView = ({
         </div>
       )}
 
-      <form onSubmit={addItem} className="mt-6 grid gap-3 sm:grid-cols-[1fr_180px_auto]">
+      <div className="mt-8 mb-3 flex flex-wrap gap-2">
+        {[
+          { name: "Passport", category: "Documents" },
+          { name: "Phone Charger", category: "Electronics" },
+          { name: "Toothbrush", category: "Toiletries" },
+          { name: "Sunglasses", category: "Accessories" },
+          { name: "Tickets", category: "Documents" },
+          { name: "Underwear", category: "Clothing" },
+          { name: "Medication", category: "Health" }
+        ].map((suggestion) => (
+          <button
+            key={suggestion.name}
+            type="button"
+            onClick={() => {
+              setName(suggestion.name);
+              setCategory(suggestion.category);
+            }}
+            className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+          >
+            + {suggestion.name}
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={addItem} className="grid gap-3 sm:grid-cols-[1fr_180px_auto]">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Add packing item" className="rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5 dark:text-white" />
         <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" className="rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5 dark:text-white" />
         <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-bold text-white transition hover:bg-indigo-500">

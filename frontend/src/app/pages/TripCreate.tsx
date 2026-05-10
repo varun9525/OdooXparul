@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Calendar as CalendarIcon, DollarSign, Image, Loader2, MapPin, Plane, Type } from "lucide-react";
 import { useNavigate } from "react-router";
 import { tripAPI } from "../../services/api";
+import { LocationAutocomplete } from "../components/LocationAutocomplete";
 
 const defaultCovers = [
   "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200",
@@ -118,15 +119,12 @@ const TripCreate = () => {
 
             <label className="space-y-2">
               <span className="text-sm font-bold text-slate-600 dark:text-white/70">Destination</span>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={form.destination}
-                  onChange={(event) => updateField("destination", event.target.value)}
-                  placeholder="Rome, Italy"
-                  className="w-full rounded-2xl border border-slate-200 bg-white/80 py-3 pl-12 pr-4 font-semibold text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
-                />
-              </div>
+              <LocationAutocomplete
+                value={form.destination}
+                onChange={(val) => updateField("destination", val)}
+                placeholder="Rome, Italy"
+                className="w-full rounded-2xl border border-slate-200 bg-white/80 py-3 pl-12 pr-4 font-semibold text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
+              />
             </label>
 
             <label className="space-y-2">

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Clock, MapPin, Plus, Trash2, Edit2, X, Check } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { itineraryAPI, ItineraryItem } from "../../services/api";
+import { LocationAutocomplete } from "./LocationAutocomplete";
 
 const formatDay = (date: string) => {
   try {
@@ -98,11 +99,31 @@ const ItineraryBuilder = ({
 
   return (
     <div className="mx-auto max-w-4xl py-4">
-      <h2 className="mb-6 text-2xl font-black text-slate-900 dark:text-white">Itinerary</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white">Itinerary</h2>
+      </div>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        {["Hotel Check-in", "Flight Departure", "Breakfast", "Lunch", "Dinner", "City Tour", "Museum Visit"].map((suggestion) => (
+          <button
+            key={suggestion}
+            type="button"
+            onClick={() => setForm({ ...form, title: suggestion, type: suggestion.toLowerCase().includes("flight") ? "flight" : suggestion.toLowerCase().includes("hotel") ? "accommodation" : suggestion.toLowerCase().includes("fast") || suggestion.toLowerCase().includes("lunch") || suggestion.toLowerCase().includes("dinner") ? "dining" : "activity" })}
+            className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+          >
+            + {suggestion}
+          </button>
+        ))}
+      </div>
 
       <form onSubmit={addActivity} className="mb-8 grid gap-3 rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5 md:grid-cols-2">
         <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Activity title" className="rounded-xl border border-slate-200 bg-white/70 px-4 py-3 font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
-        <input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Location" className="rounded-xl border border-slate-200 bg-white/70 px-4 py-3 font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
+        <LocationAutocomplete 
+          value={form.location} 
+          onChange={(val) => setForm({ ...form, location: val })} 
+          placeholder="Location" 
+          className="w-full rounded-xl border border-slate-200 bg-white/70 py-3 pl-12 pr-4 font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" 
+        />
         <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="rounded-xl border border-slate-200 bg-white/70 px-4 py-3 font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:[color-scheme:dark]" />
         <input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} className="rounded-xl border border-slate-200 bg-white/70 px-4 py-3 font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:[color-scheme:dark]" />
         <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="rounded-xl border border-slate-200 bg-white/70 px-4 py-3 font-semibold outline-none dark:border-white/10 dark:bg-slate-900 dark:text-white">

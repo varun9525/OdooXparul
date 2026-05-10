@@ -90,7 +90,24 @@ const Profile = () => {
                   <input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="First name" className="rounded-xl border border-slate-200 bg-white/80 px-4 py-3 font-semibold dark:border-white/10 dark:bg-white/5 dark:text-white" />
                   <input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Last name" className="rounded-xl border border-slate-200 bg-white/80 px-4 py-3 font-semibold dark:border-white/10 dark:bg-white/5 dark:text-white" />
                 </div>
-                <input value={form.avatarUrl} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} placeholder="Avatar URL" className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 font-semibold dark:border-white/10 dark:bg-white/5 dark:text-white" />
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-semibold text-slate-500 dark:text-white/60 pl-1">Profile Picture</label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setForm({ ...form, avatarUrl: reader.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }} 
+                    className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-2 font-semibold text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 transition-all cursor-pointer" 
+                  />
+                </div>
                 <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Bio" rows={4} className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 font-semibold dark:border-white/10 dark:bg-white/5 dark:text-white" />
                 <div className="flex gap-3">
                   <button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white disabled:opacity-60">

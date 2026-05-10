@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Activity, DollarSign, Loader2, Map, Users } from "lucide-react";
-import { tripAPI } from "../../services/api";
+import { notesAPI } from "../../services/api";
 
 const colors = ["#8b5cf6", "#ec4899", "#10b981", "#3b82f6", "#f59e0b"];
 
@@ -12,9 +12,14 @@ const AdminPanel = () => {
 
   useEffect(() => {
     const load = async () => {
-      const response = await tripAPI.getSummary();
-      setSummary(response.data);
-      setLoading(false);
+      try {
+        const response = await notesAPI.getSummary();
+        setSummary(response.data);
+      } catch (err) {
+        console.error("Failed to load admin data", err);
+      } finally {
+        setLoading(false);
+      }
     };
     load();
     const interval = window.setInterval(load, 20000);
@@ -23,6 +28,15 @@ const AdminPanel = () => {
 
   if (loading) {
     return <div className="flex min-h-[420px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
+  }
+
+  if (!summary) {
+    return (
+      <div className="flex min-h-[420px] flex-col items-center justify-center text-slate-500">
+        <Activity className="h-12 w-12 mb-4 text-slate-300" />
+        <p>No dashboard data available right now.</p>
+      </div>
+    );
   }
 
   const stats = [

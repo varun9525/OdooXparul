@@ -129,6 +129,19 @@ const BudgetView = ({
         ))}
       </div>
 
+      <div className="mb-3 flex flex-wrap gap-2">
+        {["Flight", "Accommodation", "Food & Dining", "Transportation", "Shopping", "Activities", "Coffee", "Souvenirs"].map((suggestion) => (
+          <button
+            key={suggestion}
+            type="button"
+            onClick={() => setForm({ ...form, category: suggestion })}
+            className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+          >
+            + {suggestion}
+          </button>
+        ))}
+      </div>
+
       <form onSubmit={addItem} className="grid gap-3 rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5 md:grid-cols-[1fr_120px_150px_1fr_auto]">
         <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Category" className="rounded-xl border border-slate-200 bg-white/70 px-3 py-3 text-sm font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
         <input type="number" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="Amount" className="rounded-xl border border-slate-200 bg-white/70 px-3 py-3 text-sm font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
