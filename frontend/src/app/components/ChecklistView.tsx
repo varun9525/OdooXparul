@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Filter, Plus, Trash2 } from "lucide-react";
+import { Check, Filter, Plus, Trash2, Edit2, X } from "lucide-react";
 import { packingAPI, PackingItem } from "../../services/api";
 
 const ChecklistView = ({
@@ -14,6 +14,9 @@ const ChecklistView = ({
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [filter, setFilter] = useState("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", category: "" });
+  const [saving, setSaving] = useState(false);
 
   const visibleItems = useMemo(() => {
     if (filter === "packed") return items.filter((item) => item.packed);
@@ -42,6 +45,32 @@ const ChecklistView = ({
     await onChanged();
   };
 
+  const startEdit = (item: PackingItem) => {
+    setEditingId(item.id);
+    setEditForm({ name: item.name, category: item.category || "" });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editForm.name.trim()) return;
+
+    setSaving(true);
+    try {
+      // Since packing API only has updatePackingItem for packed status, we'll need to delete and recreate
+      // Or add a new update method. For now, we'll update the component to support editing via delete/add pattern
+      await packingAPI.deletePackingItem(tripId, editingId);
+      await packingAPI.addPackingItem(tripId, { name: editForm.name.trim(), category: editForm.category.trim() || undefined });
+      setEditingId(null);
+      await onChanged();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({ name: "", category: "" });
+  };
+
   return (
     <div className="mx-auto max-w-3xl py-4">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -68,30 +97,50 @@ const ChecklistView = ({
 
       <div className="space-y-3">
         {visibleItems.map((item) => (
-          <div
-            key={item.id}
-            className={`flex items-center gap-4 rounded-xl border p-4 transition-all ${
-              item.packed
-                ? "border-indigo-300 bg-indigo-100 text-slate-600 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-white/60"
-                : "border-slate-200 bg-white/70 text-slate-900 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-            }`}
-          >
-            <button
-              onClick={() => toggleCheck(item)}
-              className={`flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
-                item.packed ? "border-indigo-500 bg-indigo-500" : "border-slate-400 dark:border-white/30"
+          editingId === item.id ? (
+            <div key={item.id} className="flex items-center gap-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-500/30 dark:bg-indigo-500/20">
+              <div className="min-w-0 flex-1 space-y-2">
+                <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="Item name" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-bold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
+                <input value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} placeholder="Category" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={saveEdit} disabled={saving} className="rounded-lg p-2 bg-green-600 text-white hover:bg-green-500 disabled:opacity-60">
+                  <Check className="h-4 w-4" />
+                </button>
+                <button onClick={cancelEdit} disabled={saving} className="rounded-lg p-2 bg-slate-400 text-white hover:bg-slate-500 disabled:opacity-60">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              key={item.id}
+              className={`flex items-center gap-4 rounded-xl border p-4 transition-all ${
+                item.packed
+                  ? "border-indigo-300 bg-indigo-100 text-slate-600 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-white/60"
+                  : "border-slate-200 bg-white/70 text-slate-900 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
               }`}
             >
-              {item.packed && <Check className="h-4 w-4 text-white" />}
-            </button>
-            <div className="min-w-0 flex-1">
-              <span className={`font-bold ${item.packed ? "line-through" : ""}`}>{item.name}</span>
-              {item.category && <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-white/35">{item.category}</p>}
+              <button
+                onClick={() => toggleCheck(item)}
+                className={`flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
+                  item.packed ? "border-indigo-500 bg-indigo-500" : "border-slate-400 dark:border-white/30"
+                }`}
+              >
+                {item.packed && <Check className="h-4 w-4 text-white" />}
+              </button>
+              <div className="min-w-0 flex-1">
+                <span className={`font-bold ${item.packed ? "line-through" : ""}`}>{item.name}</span>
+                {item.category && <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-white/35">{item.category}</p>}
+              </div>
+              <button onClick={() => startEdit(item)} className="rounded-lg p-2 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10">
+                <Edit2 className="h-4 w-4" />
+              </button>
+              <button onClick={() => deleteItem(item.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
-            <button onClick={() => deleteItem(item.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
+          )
         ))}
       </div>
 

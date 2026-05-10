@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { motion } from "motion/react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Edit2, X, Check } from "lucide-react";
 import { budgetAPI, BudgetItem } from "../../services/api";
 
 const colors = ["#6366f1", "#8b5cf6", "#ec4899", "#10b981", "#f59e0b", "#06b6d4"];
@@ -24,6 +24,8 @@ const BudgetView = ({
 }) => {
   const [form, setForm] = useState({ category: "", amount: "", date: "", description: "" });
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ category: "", amount: "", date: "", description: "" });
 
   const totals = useMemo(() => {
     const spent = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
@@ -71,6 +73,39 @@ const BudgetView = ({
   const deleteItem = async (itemId: string) => {
     await budgetAPI.deleteBudgetItem(tripId, itemId);
     await onChanged();
+  };
+
+  const startEdit = (item: BudgetItem) => {
+    setEditingId(item.id);
+    setEditForm({
+      category: item.category,
+      amount: String(item.amount),
+      date: item.date,
+      description: item.description || "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editForm.category || !editForm.amount || !editForm.date) return;
+
+    setSaving(true);
+    try {
+      await budgetAPI.updateBudgetItem(tripId, editingId, {
+        category: editForm.category,
+        amount: Number(editForm.amount),
+        date: editForm.date,
+        description: editForm.description,
+      });
+      setEditingId(null);
+      await onChanged();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({ category: "", amount: "", date: "", description: "" });
   };
 
   return (
@@ -172,18 +207,41 @@ const BudgetView = ({
 
       <div className="space-y-3">
         {items.map((item) => (
-          <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
-            <div>
-              <h4 className="font-black text-slate-900 dark:text-white">{item.category}</h4>
-              <p className="text-sm text-slate-500 dark:text-white/55">{item.description || item.date}</p>
+          editingId === item.id ? (
+            <div key={item.id} className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-500/30 dark:bg-indigo-500/20">
+              <div className="grid gap-2 mb-3 md:grid-cols-[1fr_120px_150px_1fr]">
+                <input value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} placeholder="Category" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
+                <input type="number" min="0" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} placeholder="Amount" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
+                <input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:[color-scheme:dark]" />
+                <input value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} placeholder="Description" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={saveEdit} disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2 font-bold text-white transition hover:bg-green-500 disabled:opacity-60 flex-1">
+                  <Check className="h-4 w-4" />
+                  Save
+                </button>
+                <button onClick={cancelEdit} disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-400 px-4 py-2 font-bold text-white transition hover:bg-slate-500 disabled:opacity-60">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="font-black text-slate-900 dark:text-white">{formatMoney(item.amount, currency)}</span>
-              <button onClick={() => deleteItem(item.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
-                <Trash2 className="h-4 w-4" />
-              </button>
+          ) : (
+            <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+              <div>
+                <h4 className="font-black text-slate-900 dark:text-white">{item.category}</h4>
+                <p className="text-sm text-slate-500 dark:text-white/55">{item.description || item.date}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-black text-slate-900 dark:text-white">{formatMoney(item.amount, currency)}</span>
+                <button onClick={() => startEdit(item)} className="rounded-lg p-2 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10">
+                  <Edit2 className="h-4 w-4" />
+                </button>
+                <button onClick={() => deleteItem(item.id)} className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-          </div>
+          )
         ))}
       </div>
     </div>
