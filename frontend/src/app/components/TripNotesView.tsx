@@ -6,10 +6,12 @@ const TripNotesView = ({
   tripId,
   notes,
   onChanged,
+  allowPhotos = false,
 }: {
   tripId: string;
   notes: TripNote[];
   onChanged: () => Promise<void> | void;
+  allowPhotos?: boolean;
 }) => {
   const [query, setQuery] = useState("");
   const [form, setForm] = useState({ title: "", content: "" });
@@ -69,35 +71,41 @@ const TripNotesView = ({
   return (
     <div className="mx-auto max-w-4xl py-4">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-2xl font-black text-slate-900 dark:text-white">Journal & Memories</h2>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white">
+          {allowPhotos ? "Journal & Memories" : "Trip Notes"}
+        </h2>
       </div>
 
       <form onSubmit={addNote} className="mb-8 space-y-3 rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
-        <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Memory title (e.g., Eiffel Tower Visit)" className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 font-semibold text-slate-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
-        <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} placeholder="Write about your day, or attach a photo..." rows={4} className="w-full resize-none rounded-xl border border-slate-200 bg-white/70 px-4 py-3 font-semibold text-slate-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
+        <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={allowPhotos ? "Memory title (e.g., Eiffel Tower Visit)" : "Note title"} className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 font-semibold text-slate-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
+        <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} placeholder={allowPhotos ? "Write about your day, or attach a photo..." : "Write trip detail, booking info, or reminders..."} rows={4} className="w-full resize-none rounded-xl border border-slate-200 bg-white/70 px-4 py-3 font-semibold text-slate-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-white" />
         <div className="flex justify-between items-center">
-          <label className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-200 dark:bg-white/10 dark:text-white/80 dark:hover:bg-white/20">
-            <ImageIcon className="h-4 w-4" />
-            Attach Photo
-            <input 
-              type="file" 
-              accept="image/*" 
-              className="hidden" 
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    setForm(f => ({ ...f, content: f.content + (f.content ? '\n\n' : '') + `[IMAGE:${reader.result}]` }));
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }} 
-            />
-          </label>
+          {allowPhotos ? (
+            <label className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-200 dark:bg-white/10 dark:text-white/80 dark:hover:bg-white/20">
+              <ImageIcon className="h-4 w-4" />
+              Attach Photo
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setForm(f => ({ ...f, content: f.content + (f.content ? '\n\n' : '') + `[IMAGE:${reader.result}]` }));
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }} 
+              />
+            </label>
+          ) : (
+            <div /> // empty div to keep the flex layout space
+          )}
           <button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white transition hover:bg-indigo-500 disabled:opacity-60">
             <Plus className="h-4 w-4" />
-            Add Entry
+            {allowPhotos ? "Add Entry" : "Add Note"}
           </button>
         </div>
       </form>

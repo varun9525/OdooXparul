@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { AlertCircle, Calendar, DollarSign, FileText, ListChecks, Loader2, Map, MapPin, Printer, Share2, Trash2, CalendarPlus } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isBefore, isAfter, isWithinInterval } from "date-fns";
 import ItineraryBuilder from "../components/ItineraryBuilder";
 import BudgetView from "../components/BudgetView";
 import ChecklistView from "../components/ChecklistView";
@@ -17,6 +17,17 @@ const formatDate = (value: string) => {
   } catch {
     return value;
   }
+};
+
+const getTripPhase = (trip: Trip) => {
+  const now = new Date();
+  const start = parseISO(trip.startDate);
+  const end = parseISO(trip.endDate);
+
+  if (isWithinInterval(now, { start, end })) return "active";
+  if (isBefore(now, start)) return "upcoming";
+  if (isAfter(now, end)) return "past";
+  return trip.status || "upcoming";
 };
 
 const TripDetails = () => {
@@ -45,11 +56,14 @@ const TripDetails = () => {
     loadTrip();
   }, [loadTrip]);
 
+  const phase = trip ? getTripPhase(trip) : "upcoming";
+  const isPast = phase === "past";
+
   const tabs = [
     { id: "itinerary", label: "Itinerary", icon: Map },
     { id: "budget", label: "Budget", icon: DollarSign },
     { id: "checklist", label: "Checklist", icon: ListChecks },
-    { id: "notes", label: "Journal & Memories", icon: FileText },
+    { id: "notes", label: isPast ? "Journal & Memories" : "Notes", icon: FileText },
   ];
 
   const downloadICS = () => {
@@ -208,7 +222,7 @@ const TripDetails = () => {
                 />
               )}
               {activeTab === "checklist" && <ChecklistView tripId={trip.id} items={trip.packingList ?? []} onChanged={loadTrip} />}
-              {activeTab === "notes" && <TripNotesView tripId={trip.id} notes={trip.notes ?? []} onChanged={loadTrip} />}
+              {activeTab === "notes" && <TripNotesView tripId={trip.id} notes={trip.notes ?? []} onChanged={loadTrip} allowPhotos={isPast} />}
             </motion.div>
           </AnimatePresence>
         </div>
