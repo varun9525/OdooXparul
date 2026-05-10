@@ -75,18 +75,33 @@ const BudgetView = ({
 
   return (
     <div className="space-y-8 py-4">
+      {totals.remaining < 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="mb-6 flex items-center gap-3 rounded-2xl border border-red-500/50 bg-red-500/10 p-4 text-red-600 dark:text-red-400"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/20">
+            <span className="text-xl">⚠️</span>
+          </div>
+          <div>
+            <h4 className="font-bold">Over Budget Warning</h4>
+            <p className="text-sm font-medium">You have exceeded your planned budget by {formatMoney(Math.abs(totals.remaining), currency)}. Consider reviewing your {totals.categoryData.sort((a,b) => b.value - a.value)[0]?.name || "highest"} expenses to cut costs.</p>
+          </div>
+        </motion.div>
+      )}
+
       <div className="grid gap-6 md:grid-cols-3">
         {[
-          { label: "Total Budget", value: formatMoney(totalBudget, currency), tone: "text-slate-900 dark:text-white" },
-          { label: "Total Spent", value: formatMoney(totals.spent, currency), tone: "text-red-600 dark:text-red-400" },
-          { label: "Remaining", value: formatMoney(totals.remaining, currency), tone: "text-green-600 dark:text-green-400" },
+          { label: "Total Budget", value: formatMoney(totalBudget, currency), tone: "text-slate-900 dark:text-white", glow: "" },
+          { label: "Total Spent", value: formatMoney(totals.spent, currency), tone: totals.remaining < 0 ? "text-red-600 dark:text-red-500" : "text-indigo-600 dark:text-indigo-400", glow: totals.remaining < 0 ? "ring-2 ring-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]" : "" },
+          { label: "Remaining", value: formatMoney(totals.remaining, currency), tone: totals.remaining < 0 ? "text-red-600 dark:text-red-500" : "text-emerald-600 dark:text-emerald-400", glow: "" },
         ].map((item, index) => (
           <motion.div
             key={item.label}
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.08 }}
-            className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white/70 p-6 dark:border-white/10 dark:bg-white/5"
+            className={`flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white/70 p-6 dark:border-white/10 dark:bg-white/5 ${item.glow}`}
           >
             <p className="text-sm text-slate-500 dark:text-white/60">{item.label}</p>
             <p className={`text-3xl font-black ${item.tone}`}>{item.value}</p>

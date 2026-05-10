@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Calendar as CalendarIcon, DollarSign, Image, Loader2, MapPin, Plane, Type } from "lucide-react";
 import { useNavigate } from "react-router";
-import { tripAPI } from "../../services/api";
+import { tripAPI, itineraryAPI, packingAPI, budgetAPI } from "../../services/api";
 import { LocationAutocomplete } from "../components/LocationAutocomplete";
 
 const defaultCovers = [
@@ -28,6 +28,8 @@ const TripCreate = () => {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [generateItinerary, setGenerateItinerary] = useState(false);
 
   const previewTitle = form.title || "Your new trip";
   const previewDestination = form.destination || "Choose a destination";
@@ -44,6 +46,7 @@ const TripCreate = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
+    setSuccess("");
 
     if (!canSubmit) {
       setError("Trip title, destination, start date, and end date are required.");
@@ -57,7 +60,7 @@ const TripCreate = () => {
 
     setSaving(true);
     try {
-      await tripAPI.createTrip({
+      const res = await tripAPI.createTrip({
         title: form.title.trim(),
         destination: form.destination.trim(),
         startDate: form.startDate,
@@ -68,10 +71,35 @@ const TripCreate = () => {
         currency: form.currency,
       });
 
-      navigate("/");
+      const tripId = res.data.id;
+
+      if (generateItinerary) {
+        const destName = form.destination.split(',')[0];
+        const dates = [
+          form.startDate, 
+          new Date(new Date(form.startDate).getTime() + 86400000).toISOString().split('T')[0], 
+          form.endDate
+        ];
+        
+        await itineraryAPI.addItineraryItem(tripId, { title: "Arrive & Hotel Check-in", date: dates[0], time: "14:00", location: destName, type: "accommodation" });
+        await itineraryAPI.addItineraryItem(tripId, { title: "Evening City Tour", date: dates[0], time: "17:00", location: `Downtown ${destName}`, type: "activity" });
+        await itineraryAPI.addItineraryItem(tripId, { title: "Breakfast at Local Cafe", date: dates[1], time: "09:00", location: destName, type: "dining" });
+        await itineraryAPI.addItineraryItem(tripId, { title: "Museum Visit", date: dates[1], time: "11:00", location: `Museum of ${destName}`, type: "activity" });
+        await itineraryAPI.addItineraryItem(tripId, { title: "Souvenir Shopping", date: dates[2], time: "10:00", location: `Market in ${destName}`, type: "activity" });
+        await itineraryAPI.addItineraryItem(tripId, { title: "Flight Departure", date: dates[2], time: "15:00", location: `${destName} Airport`, type: "flight" });
+
+        await packingAPI.addPackingItem(tripId, { name: "Passport", category: "Documents" });
+        await packingAPI.addPackingItem(tripId, { name: "Phone Charger", category: "Electronics" });
+        await packingAPI.addPackingItem(tripId, { name: "Comfortable Shoes", category: "Clothing" });
+        await packingAPI.addPackingItem(tripId, { name: "Camera", category: "Electronics" });
+
+        await budgetAPI.addBudgetItem(tripId, { category: "Flight", amount: 450, date: dates[0], description: "Round trip flights" });
+        await budgetAPI.addBudgetItem(tripId, { category: "Accommodation", amount: 300, date: dates[0], description: "3 nights hotel" });
+      }
+
+      navigate(`/trips/${tripId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create trip");
-    } finally {
       setSaving(false);
     }
   };
@@ -99,6 +127,11 @@ const TripCreate = () => {
         {error && (
           <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
             {error}
+          </div>
+        )}
+        {success && (
+          <div className="mb-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-200">
+            {success}
           </div>
         )}
 
@@ -216,14 +249,53 @@ const TripCreate = () => {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+          {generateItinerary && (
+            <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+              <span className="text-xl">✨</span>
+              Magic AI will automatically generate a 3-day itinerary and packing list when you save!
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 pt-4 sm:flex-row">
             <button
               type="submit"
               disabled={!canSubmit}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-3 font-bold text-white shadow-lg shadow-indigo-600/25 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plane className="h-5 w-5" />}
-              {saving ? "Saving Trip..." : "Create Trip"}
+              {saving ? "Saving..." : "Create Trip"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!form.destination) {
+                  setError("Please enter a destination first to use Magic AI!");
+                  return;
+                }
+                const destName = form.destination.split(',')[0];
+                const sDate = form.startDate || new Date().toISOString().split('T')[0];
+                const d = new Date(sDate);
+                d.setDate(d.getDate() + 3);
+                const eDate = form.endDate || d.toISOString().split('T')[0];
+                
+                setForm(current => ({
+                  ...current,
+                  title: current.title || `Getaway to ${destName}`,
+                  startDate: sDate,
+                  endDate: eDate,
+                  description: current.description || `An amazing 3-day adventure in ${destName} generated by Magic AI.`,
+                  totalBudget: current.totalBudget || "1500",
+                }));
+                
+                setGenerateItinerary(true);
+                setSuccess("Magic AI has filled out your trip details! Feel free to edit anything before saving.");
+                setError("");
+              }}
+              disabled={saving}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 px-6 py-3 font-bold text-white shadow-lg shadow-purple-500/25 transition hover:from-purple-600 hover:to-indigo-600 disabled:opacity-60"
+            >
+              <span className="text-xl leading-none">✨</span>
+              Magic Generate
             </button>
             <button
               type="button"
