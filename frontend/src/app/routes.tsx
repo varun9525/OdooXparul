@@ -160,8 +160,12 @@ const GlassSidebar = () => {
         )}
         
         <button onClick={() => navigate("/profile")} className="flex items-center gap-4 p-3 md:px-4 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group">
-          <Settings className="w-5 h-5 text-slate-500 dark:text-white/60 group-hover:text-indigo-500 dark:group-hover:text-white" />
-          <span className="hidden md:block text-slate-600 dark:text-white/60 group-hover:text-indigo-600 dark:group-hover:text-white font-medium">Settings</span>
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="Profile" className="w-6 h-6 rounded-full object-cover ring-2 ring-indigo-500/30 group-hover:ring-indigo-500 transition-all" />
+          ) : (
+            <Settings className="w-5 h-5 text-slate-500 dark:text-white/60 group-hover:text-indigo-500 dark:group-hover:text-white" />
+          )}
+          <span className="hidden md:block text-slate-600 dark:text-white/60 group-hover:text-indigo-600 dark:group-hover:text-white font-medium">Profile</span>
         </button>
         <button onClick={handleLogout} className="flex items-center gap-4 p-3 md:px-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors group">
           <LogOut className="w-5 h-5 text-red-500 dark:text-red-400 group-hover:text-red-600 dark:group-hover:text-red-300" />
