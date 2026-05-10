@@ -16,6 +16,18 @@ const Login = () => {
   const [showWelcome, setShowWelcome] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<{ name: string; avatar: string } | null>(null);
 
+  // Check localStorage for a returning user's avatar
+  const savedUser = (() => {
+    try {
+      const raw = localStorage.getItem("user");
+      if (!raw) return null;
+      const u = JSON.parse(raw);
+      return u;
+    } catch { return null; }
+  })();
+
+  const showSavedAvatar = savedUser && email && savedUser.email?.toLowerCase() === email.toLowerCase() && savedUser.avatarUrl;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError("");
@@ -111,11 +123,27 @@ const Login = () => {
             className="w-full max-w-md bg-white/10 backdrop-blur-2xl border border-white/20 p-8 rounded-3xl shadow-2xl z-10 mx-4"
           >
             <div className="flex flex-col items-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg mb-4">
-                <span className="text-white font-bold text-xl">✈️</span>
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-              <p className="text-white/60">Enter your details to access Traveloop</p>
+              <motion.div 
+                key={showSavedAvatar ? "avatar" : "default"}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg mb-4 overflow-hidden ring-4 ring-indigo-500/30"
+              >
+                {showSavedAvatar ? (
+                  <img src={savedUser.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center">
+                    <span className="text-white font-bold text-xl">✈️</span>
+                  </div>
+                )}
+              </motion.div>
+              <h2 className="text-3xl font-bold text-white mb-2">
+                {showSavedAvatar ? `Hi, ${savedUser.firstName || savedUser.username || "Traveler"}!` : "Welcome Back"}
+              </h2>
+              <p className="text-white/60">
+                {showSavedAvatar ? "Enter your password to continue" : "Enter your details to access Traveloop"}
+              </p>
             </div>
 
             {(localError || error) && (
