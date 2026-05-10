@@ -66,33 +66,45 @@ const TripDetails = () => {
     { id: "notes", label: isPast ? "Journal & Memories" : "Notes", icon: FileText },
   ];
 
-  const downloadICS = () => {
+  const addToGoogleCalendar = () => {
     if (!trip) return;
-    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Traveloop//Trip Itinerary//EN\n";
     
-    trip.itinerary?.forEach((item) => {
-      const startDate = new Date(`${item.date}T${item.time || '00:00'}`);
-      const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
-      const formatICSDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-      icsContent += "BEGIN:VEVENT\n";
-      icsContent += `DTSTART:${formatICSDate(startDate)}\n`;
-      icsContent += `DTEND:${formatICSDate(endDate)}\n`;
-      icsContent += `SUMMARY:${item.title}\n`;
-      if (item.location) icsContent += `LOCATION:${item.location}\n`;
-      if (item.description) icsContent += `DESCRIPTION:${item.description}\n`;
-      icsContent += "END:VEVENT\n";
-    });
+    // Format dates for Google Calendar all-day event (YYYYMMDD)
+    const startDate = trip.startDate.replace(/-/g, '');
+    const endObj = new Date(trip.endDate);
+    endObj.setDate(endObj.getDate() + 1); // Google Calendar end date is exclusive for all-day events
+    const endDate = endObj.toISOString().split('T')[0].replace(/-/g, '');
     
-    icsContent += "END:VCALENDAR";
+    let details = "Here is your Traveloop Itinerary:\n\n";
+    if (trip.itinerary && trip.itinerary.length > 0) {
+      // Group by date
+      const byDate = trip.itinerary.reduce<Record<string, any[]>>((acc, item) => {
+        acc[item.date] = acc[item.date] || [];
+        acc[item.date].push(item);
+        return acc;
+      }, {});
+      
+      Object.entries(byDate).sort(([a],[b]) => a.localeCompare(b)).forEach(([date, items]) => {
+        details += `--- ${formatDate(date)} ---\n`;
+        items.forEach(item => {
+          details += `• ${item.time || 'All day'}: ${item.title}`;
+          if (item.location) details += ` (@ ${item.location})`;
+          details += '\n';
+        });
+        details += '\n';
+      });
+    } else {
+      details += "No itinerary planned yet.\n";
+    }
     
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${trip.title.replace(/\s+/g, '_')}_Itinerary.ics`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const url = new URL("https://calendar.google.com/calendar/render");
+    url.searchParams.append("action", "TEMPLATE");
+    url.searchParams.append("text", trip.title);
+    url.searchParams.append("dates", `${startDate}/${endDate}`);
+    url.searchParams.append("details", details);
+    url.searchParams.append("location", trip.destination);
+    
+    window.open(url.toString(), "_blank");
   };
 
   if (loading) {
@@ -153,9 +165,9 @@ const TripDetails = () => {
                   <Share2 className="h-4 w-4" />
                   <span id="share-btn-text">Share</span>
                 </button>
-                <button onClick={downloadICS} className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/15 px-5 py-2.5 font-bold text-white backdrop-blur-md transition hover:bg-white/25">
+                <button onClick={addToGoogleCalendar} className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/15 px-5 py-2.5 font-bold text-white backdrop-blur-md transition hover:bg-white/25">
                   <CalendarPlus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Add to Calendar</span>
+                  <span className="hidden sm:inline">Add to Google Calendar</span>
                 </button>
                 <button onClick={() => navigate(`/invoice/${id}`)} className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/15 px-5 py-2.5 font-bold text-white backdrop-blur-md transition hover:bg-white/25">
                   <Printer className="h-4 w-4" />
